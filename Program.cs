@@ -158,13 +158,54 @@ app.MapGet("/api/route",  () => Stub("RouteHandler"));
 
 // ── Rendering ───────────────────────────────────────────────────────────────
 
-app.MapMethods("/api/jumpmap", ["GET","POST"], () => Stub("JumpMapHandler"));
-app.MapMethods("/api/poster",  ["GET","POST"], () => Stub("PosterHandler"));
-app.MapMethods("/api/poster/{sector}", ["GET","POST"], (string sector) => Stub("PosterHandler"));
+app.MapMethods("/api/jumpmap", ["GET","POST"], (HttpContext ctx) =>
+{
+    string? sectorName = ctx.Request.Query["sector"];
+    string? hexStr     = ctx.Request.Query["hex"];
+    string? milieu     = ctx.Request.Query["milieu"];
+    int jump = int.TryParse(ctx.Request.Query["jump"], out int jv) ? jv : 0;
+    double scale = 64;
+
+    try
+    {
+        var rm = Maps.ResourceManager.GetInstance();
+        var map = Maps.SectorMap.ForMilieu(milieu);
+        if (sectorName == null) return Results.BadRequest("sector required");
+
+        var sector = map.FromName(sectorName);
+        if (sector == null) return Results.NotFound($"Sector '{sectorName}' not found.");
+
+        var tileRect = (System.Drawing.RectangleF)sector.Bounds;
+        tileRect.Height += 0.5f;
+        tileRect.Inflate(0.25f, 0.10f);
+
+        var options = Maps.Rendering.MapOptions.SectorGrid | Maps.Rendering.MapOptions.BordersMajor
+                    | Maps.Rendering.MapOptions.NamesMajor;
+        var styles   = new Maps.Rendering.Stylesheet(scale, options, Maps.Rendering.Style.Poster);
+        var selector = new Maps.SectorSelector(rm, sector);
+        int w = (int)Math.Floor(tileRect.Width * scale * Maps.Astrometrics.ParsecScaleX);
+        int h = (int)Math.Floor(tileRect.Height * scale * Maps.Astrometrics.ParsecScaleY);
+        var tileSize = new System.Drawing.Size(w, h);
+        var renderCtx = new Maps.Rendering.RenderContext(rm, selector, tileRect, scale, options, styles, tileSize);
+
+        using var bitmap = new SkiaSharp.SKBitmap(w, h, SkiaSharp.SKColorType.Bgra8888, SkiaSharp.SKAlphaType.Premul);
+        using (var canvas = new SkiaSharp.SKCanvas(bitmap))
+        {
+            canvas.Clear(SkiaSharp.SKColors.White);
+            using var graphics = new Maps.Graphics.BitmapGraphics(canvas);
+            renderCtx.Render(graphics);
+        }
+        using var encoded = bitmap.Encode(SkiaSharp.SKEncodedImageFormat.Png, 100);
+        return Results.Bytes(encoded.ToArray(), "image/png");
+    }
+    catch (Exception ex) { return Results.Problem(ex.Message, statusCode: 500); }
+});
+app.MapMethods("/api/poster",  ["GET","POST"], (HttpContext ctx) => RenderPoster(ctx, null, null, null));
+app.MapMethods("/api/poster/{sector}", ["GET","POST"], (HttpContext ctx, string sector) => RenderPoster(ctx, sector, null, null));
 app.MapMethods("/api/poster/{sector}/{quadrant:regex(^(alpha|beta|gamma|delta)$)}", ["GET","POST"],
-    (string sector, string quadrant) => Stub("PosterHandler/quadrant"));
+    (HttpContext ctx, string sector, string quadrant) => RenderPoster(ctx, sector, quadrant, null));
 app.MapMethods("/api/poster/{sector}/{subsector}", ["GET","POST"],
-    (string sector, string subsector) => Stub("PosterHandler/subsector"));
+    (HttpContext ctx, string sector, string subsector) => RenderPoster(ctx, sector, null, subsector));
 app.MapGet("/api/tile", (HttpContext ctx) =>
 {
     double x     = double.TryParse(ctx.Request.Query["x"],     out double xv) ? xv : 0;
@@ -316,3 +357,97 @@ app.MapGet("/t5ss/sophonts",    () => Stub("SophontCodesHandler"));
 // ───────────────────────────────────────────────────────────────────────────
 
 app.Run();
+
+// ── Poster rendering helper ──────────────────────────────────────────────────
+
+IResult RenderPoster(HttpContext ctx, string? sectorName, string? quadrant, string? subsector)
+{
+    sectorName ??= ctx.Request.Query["sector"];
+    string? milieu = ctx.Request.Query["milieu"];
+    double scale   = double.TryParse(ctx.Request.Query["scale"], out double sv) ? sv : 64;
+    string? accept = ctx.Request.Query["accept"].ToString();
+    if (string.IsNullOrEmpty(accept))
+        accept = ctx.Request.Headers["Accept"].ToString().Split(',')[0].Trim();
+    if (string.IsNullOrEmpty(accept))
+        accept = Maps.Utilities.ContentTypes.Image.Png;
+    // URL '+' decodes to space; restore it in MIME types.
+    accept = accept.Replace("svg xml", "svg+xml").Replace("svg%2Bxml", "svg+xml");
+
+    if (string.IsNullOrEmpty(sectorName))
+        return Results.BadRequest("sector required");
+
+    try
+    {
+        var rm  = Maps.ResourceManager.GetInstance();
+        var map = Maps.SectorMap.ForMilieu(milieu);
+
+        var sector = map.FromName(sectorName);
+        if (sector == null) return Results.NotFound($"Sector '{sectorName}' not found.");
+
+        System.Drawing.RectangleF tileRect;
+        Maps.Selector selector;
+        var options = Maps.Rendering.MapOptions.SectorGrid | Maps.Rendering.MapOptions.SubsectorGrid
+                    | Maps.Rendering.MapOptions.BordersMajor | Maps.Rendering.MapOptions.BordersMinor
+                    | Maps.Rendering.MapOptions.NamesMajor | Maps.Rendering.MapOptions.NamesMinor
+                    | Maps.Rendering.MapOptions.WorldsCapitals | Maps.Rendering.MapOptions.WorldsHomeworlds;
+        string title = sector.Names[0].Text;
+
+        if (subsector != null)
+        {
+            int idx = sector.SubsectorIndexFor(subsector);
+            if (idx == -1) return Results.NotFound($"Subsector '{subsector}' not found.");
+            selector = new Maps.SubsectorSelector(rm, sector, idx);
+            tileRect = (System.Drawing.RectangleF)sector.SubsectorBounds(idx);
+            title += $" - Subsector {(char)('A' + idx)}";
+        }
+        else
+        {
+            selector = new Maps.SectorSelector(rm, sector);
+            tileRect = (System.Drawing.RectangleF)sector.Bounds;
+            tileRect.Height += 0.5f;
+            tileRect.Inflate(0.25f, 0.10f);
+        }
+
+        var styles   = new Maps.Rendering.Stylesheet(scale, options, Maps.Rendering.Style.Poster);
+        int w = (int)Math.Floor(tileRect.Width * scale * Maps.Astrometrics.ParsecScaleX);
+        int h = (int)Math.Floor(tileRect.Height * scale * Maps.Astrometrics.ParsecScaleY);
+        var tileSize = new System.Drawing.Size(w, h);
+        var renderCtx = new Maps.Rendering.RenderContext(rm, selector, tileRect, scale, options, styles, tileSize);
+
+        if (accept == Maps.Utilities.ContentTypes.Application.Pdf)
+        {
+            using var doc = new PdfSharp.Pdf.PdfDocument();
+            doc.Info.Title = title;
+            var page = doc.AddPage();
+            page.Width  = PdfSharp.Drawing.XUnit.FromPoint(w);
+            page.Height = PdfSharp.Drawing.XUnit.FromPoint(h);
+            using var gfx = PdfSharp.Drawing.XGraphics.FromPdfPage(page);
+            using var pdfGraphics = new Maps.Graphics.PdfSharpGraphics(gfx);
+            renderCtx.Render(pdfGraphics);
+            using var ms = new System.IO.MemoryStream();
+            doc.Save(ms, closeStream: false);
+            return Results.Bytes(ms.ToArray(), "application/pdf");
+        }
+
+        if (accept == Maps.Utilities.ContentTypes.Image.Svg)
+        {
+            using var svg = new Maps.Graphics.SVGGraphics(w, h);
+            renderCtx.Render(svg);
+            using var ms = new System.IO.MemoryStream();
+            svg.Serialize(new System.IO.StreamWriter(ms));
+            return Results.Bytes(ms.ToArray(), "image/svg+xml");
+        }
+
+        // Default: PNG
+        using var bitmap = new SkiaSharp.SKBitmap(w, h, SkiaSharp.SKColorType.Bgra8888, SkiaSharp.SKAlphaType.Premul);
+        using (var canvas = new SkiaSharp.SKCanvas(bitmap))
+        {
+            canvas.Clear(SkiaSharp.SKColors.White);
+            using var graphics = new Maps.Graphics.BitmapGraphics(canvas);
+            renderCtx.Render(graphics);
+        }
+        using var encoded = bitmap.Encode(SkiaSharp.SKEncodedImageFormat.Png, 100);
+        return Results.Bytes(encoded.ToArray(), "image/png");
+    }
+    catch (Exception ex) { return Results.Problem(ex.Message, statusCode: 500); }
+}

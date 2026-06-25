@@ -270,43 +270,4 @@ namespace Maps.Graphics
 
     internal enum DashStyle { Solid, Dot, Dash, DashDot, DashDotDot, Custom }
 
-    // Stub; replaced by full PdfSharp 6.x implementation in issue #6.
-    internal sealed class PdfSharpGraphics : AbstractGraphics
-    {
-        internal PdfSharpGraphics(PdfSharp.Drawing.XGraphics gfx) =>
-            throw new NotImplementedException("PdfSharpGraphics: ported in issue #6");
-        public SmoothingMode SmoothingMode { get => throw new NotImplementedException(); set => throw new NotImplementedException(); }
-        public System.Drawing.Graphics? Graphics => null;
-        public bool SupportsWingdings => throw new NotImplementedException();
-        public void ScaleTransform(float s) => throw new NotImplementedException();
-        public void ScaleTransform(float x, float y) => throw new NotImplementedException();
-        public void TranslateTransform(float dx, float dy) => throw new NotImplementedException();
-        public void RotateTransform(float a) => throw new NotImplementedException();
-        public void MultiplyTransform(AbstractMatrix m) => throw new NotImplementedException();
-        public void IntersectClip(AbstractPath p) => throw new NotImplementedException();
-        public void IntersectClip(RectangleF r) => throw new NotImplementedException();
-        public void DrawLine(AbstractPen p, float x1, float y1, float x2, float y2) => throw new NotImplementedException();
-        public void DrawLine(AbstractPen p, PointF a, PointF b) => throw new NotImplementedException();
-        public void DrawLines(AbstractPen p, PointF[] pts) => throw new NotImplementedException();
-        public void DrawPath(AbstractPen p, AbstractPath path) => throw new NotImplementedException();
-        public void DrawPath(AbstractBrush b, AbstractPath path) => throw new NotImplementedException();
-        public void DrawCurve(AbstractPen p, PointF[] pts, float t = 0.5f) => throw new NotImplementedException();
-        public void DrawClosedCurve(AbstractPen p, PointF[] pts, float t = 0.5f) => throw new NotImplementedException();
-        public void DrawClosedCurve(AbstractBrush b, PointF[] pts, float t = 0.5f) => throw new NotImplementedException();
-        public void DrawRectangle(AbstractPen p, float x, float y, float w, float h) => throw new NotImplementedException();
-        public void DrawRectangle(AbstractPen p, RectangleF r) => throw new NotImplementedException();
-        public void DrawRectangle(AbstractBrush b, float x, float y, float w, float h) => throw new NotImplementedException();
-        public void DrawRectangle(AbstractBrush b, RectangleF r) => throw new NotImplementedException();
-        public void DrawEllipse(AbstractPen p, float x, float y, float w, float h) => throw new NotImplementedException();
-        public void DrawEllipse(AbstractBrush b, float x, float y, float w, float h) => throw new NotImplementedException();
-        public void DrawEllipse(AbstractPen p, AbstractBrush b, float x, float y, float w, float h) => throw new NotImplementedException();
-        public void DrawArc(AbstractPen p, float x, float y, float w, float h, float sa, float sw) => throw new NotImplementedException();
-        public void DrawImage(AbstractImage img, float x, float y, float w, float h) => throw new NotImplementedException();
-        public void DrawImageAlpha(float a, AbstractImage img, RectangleF r) => throw new NotImplementedException();
-        public SizeF MeasureString(string t, AbstractFont f) => throw new NotImplementedException();
-        public void DrawString(string s, AbstractFont f, AbstractBrush b, float x, float y, StringAlignment a) => throw new NotImplementedException();
-        public AbstractGraphicsState Save() => throw new NotImplementedException();
-        public void Restore(AbstractGraphicsState s) => throw new NotImplementedException();
-        public void Dispose() { }
-    }
 }

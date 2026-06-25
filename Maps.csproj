@@ -24,8 +24,7 @@
          replaced by AbstractGraphicsShim.cs until SkiaSharp port in issue #5 -->
     <Compile Remove="server/graphics/AbstractGraphics.cs" />
     <!-- BitmapGraphics.cs: SkiaSharp implementation added in issue #5 -->
-    <!-- PdfSharpGraphics.cs: PdfSharp 6.x port in issue #6 -->
-    <Compile Remove="server/graphics/PdfSharpGraphics.cs" />
+    <!-- PdfSharpGraphics.cs: PdfSharp 6.x implementation added in issue #6 -->
   </ItemGroup>
 
   <ItemGroup>
