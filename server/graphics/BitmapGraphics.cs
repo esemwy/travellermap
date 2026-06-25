@@ -121,7 +121,12 @@ namespace Maps.Graphics
             }
             typeface ??= SKTypeface.FromFamilyName(font.Families.Split(',')[0].Trim(), skStyle)
                       ?? SKTypeface.Default;
-            return new SKFont(typeface, font.Size);
+            return new SKFont(typeface, font.Size)
+            {
+                Edging  = SKFontEdging.SubpixelAntialias,
+                Hinting = SKFontHinting.Normal,
+                Subpixel = true,
+            };
         }
 
         // ── Transforms ───────────────────────────────────────────────────────
