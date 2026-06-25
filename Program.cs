@@ -1,11 +1,13 @@
 // ASP.NET Core host for Traveller Map.
 // Replaces Global.asax.cs and IIS/Web.config hosting.
-// Route stubs return 501; filled in by issues #5–#8.
+using Maps.Database;
+using Maps.Search;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.StaticFiles;
 using Microsoft.Extensions.DependencyInjection;
 using System;
+using System.Linq;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -20,6 +22,17 @@ builder.Services.AddCors(options =>
 });
 
 var app = builder.Build();
+
+// Wire up the database connection factory based on configuration.
+string connectionString = app.Configuration["ConnectionString"] ?? "";
+string dbProvider      = app.Configuration["DatabaseProvider"] ?? "mariadb";
+
+if (!string.IsNullOrEmpty(connectionString))
+{
+    DBUtil.Factory = dbProvider.Equals("sqlserver", StringComparison.OrdinalIgnoreCase)
+        ? new SqlServerConnectionFactory(connectionString)
+        : new MariaDbConnectionFactory(connectionString);
+}
 
 app.UseCors();
 
@@ -82,8 +95,25 @@ app.MapGet("/sheet/{sector}/{hex}", (string sector, string hex) =>
 
 // ── Administration ──────────────────────────────────────────────────────────
 
-app.MapMethods("/admin/admin",   ["GET","POST"], () => Stub("AdminHandler"));
-app.MapMethods("/admin/flush",   ["GET","POST"], () => Stub("AdminHandler/flush"));
+app.MapMethods("/admin/admin", ["GET","POST"], (HttpContext ctx) =>
+{
+    string? action = ctx.Request.Query["action"].ToString();
+    if (action == "flush")
+    {
+        Maps.SectorMap.Flush();
+        return Results.Text("Flushed.");
+    }
+    if (action == "reindex")
+    {
+        if (DBUtil.Factory == null)
+            return Results.Problem("Database not configured.", statusCode: 503);
+        var lines = new System.Collections.Generic.List<string>();
+        SearchEngine.PopulateDatabase(Maps.ResourceManager.GetDedicatedInstance(), s => lines.Add(s));
+        return Results.Text(string.Join("\n", lines));
+    }
+    return Results.Text($"Admin. uptime: {DateTime.Now - Maps.GlobalAsax.startup_time}");
+});
+app.MapMethods("/admin/flush",   ["GET","POST"], () => { Maps.SectorMap.Flush(); return Results.Text("Flushed."); });
 app.MapMethods("/admin/reindex", ["GET","POST"], () => Stub("AdminHandler/reindex"));
 app.MapMethods("/admin/profile", ["GET","POST"], () => Stub("AdminHandler/profile"));
 app.MapMethods("/admin/uptime",  ["GET","POST"], () => Stub("AdminHandler/uptime"));
@@ -95,7 +125,35 @@ app.MapGet("/admin/overview", () => Stub("OverviewHandler"));
 
 // ── Search / route ──────────────────────────────────────────────────────────
 
-app.MapGet("/api/search", () => Stub("SearchHandler"));
+app.MapGet("/api/search", (HttpContext ctx) =>
+{
+    if (DBUtil.Factory == null)
+        return Results.Problem("Database not configured. Set ConnectionString in configuration.", statusCode: 503);
+
+    string? q       = ctx.Request.Query["q"];
+    string? milieu  = ctx.Request.Query["milieu"];
+    string? accept  = ctx.Request.Query["accept"];
+    bool    random  = ctx.Request.Query["random"] == "1";
+    int     limit   = int.TryParse(ctx.Request.Query["limit"], out int l) ? l : 160;
+
+    try
+    {
+        var results = SearchEngine.PerformSearch(milieu, q,
+            SearchEngine.SearchResultsType.Default, limit, random);
+        return Results.Json(new { results = results.Select(r => r switch
+        {
+            SectorResult    s   => (object)new { type = "sector",    sx = s.SectorCoords.X, sy = s.SectorCoords.Y },
+            SubsectorResult s   => (object)new { type = "subsector", sx = s.SectorLocation.X, sy = s.SectorLocation.Y, index = s.Index.ToString() },
+            WorldResult     w   => (object)new { type = "world",     sx = w.Sector.X, sy = w.Sector.Y, hx = w.Hex.X, hy = w.Hex.Y },
+            LabelResult     lab => (object)new { type = "label",     x  = lab.Coords.X, y = lab.Coords.Y, name = lab.Label, radius = lab.Radius },
+            _                   => (object)new { type = "unknown" }
+        }).ToArray() });
+    }
+    catch (Exception ex)
+    {
+        return Results.Problem(ex.Message, statusCode: 500);
+    }
+});
 app.MapGet("/api/route",  () => Stub("RouteHandler"));
 
 // ── Rendering ───────────────────────────────────────────────────────────────
