@@ -214,7 +214,7 @@ namespace Maps.Rendering
 
     internal class Stylesheet
     {
-        public const string DEFAULT_FONT = "Arial,Liberation Sans,DejaVu Sans";
+        public const string DEFAULT_FONT = "Liberation Sans,DejaVu Sans";
 
         private const float SectorGridMinScale = 1 / 2f; // Below this, no sector grid is shown
         private const float SectorGridFullScale = 4; // Above this, sector grid opaque
@@ -358,7 +358,7 @@ namespace Maps.Rendering
 
                 worlds.fontInfo = new FontInfo(DEFAULT_FONT, scale < WorldFullMinScale ? 0.2f : 0.15f * fontScale, FontStyle.Bold);
                 wingdingFont = new FontInfo("Wingdings", scale < WorldFullMinScale ? 0.2f : 0.175f * fontScale);
-                glyphFont = new FontInfo("Arial Unicode MS,Segoe UI Symbol,Arial", scale < WorldFullMinScale ? 0.175f : 0.15f * fontScale, FontStyle.Bold);
+                glyphFont = new FontInfo("Liberation Sans,DejaVu Sans", scale < WorldFullMinScale ? 0.175f : 0.15f * fontScale, FontStyle.Bold);
                 uwp.fontInfo = hexNumber.fontInfo = new FontInfo(DEFAULT_FONT, 0.1f * fontScale);
                 worlds.smallFontInfo = new FontInfo(DEFAULT_FONT, scale < WorldFullMinScale ? 0.2f : 0.1f * fontScale, FontStyle.Regular);
                 worlds.largeFontInfo = worlds.fontInfo;
