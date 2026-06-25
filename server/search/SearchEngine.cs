@@ -3,7 +3,6 @@ using System;
 using System.Collections.Generic;
 using System.Data;
 using Microsoft.Data.SqlClient;
-using System.Drawing;
 using System.Linq;
 using System.Text.RegularExpressions;
 using System.Web;
@@ -234,8 +233,7 @@ namespace Maps.Search
                             (int)Math.Round(points.Select(p => p.Y).Average()));
                         Point min = new Point(points.Select(p => p.X).Min(), points.Select(p => p.Y).Min());
                         Point max = new Point(points.Select(p => p.X).Max(), points.Select(p => p.Y).Max());
-                        Size size = new Size(max.X - min.X, max.Y - min.Y);
-                        int radius = Math.Max(size.Width, size.Height);
+                        int radius = Math.Max(max.X - min.X, max.Y - min.Y);
 
                         DataRow row = dt_labels.NewRow();
                         row.ItemArray = new object[] {

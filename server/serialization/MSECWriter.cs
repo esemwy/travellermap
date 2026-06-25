@@ -1,7 +1,6 @@
 ﻿#nullable enable
 using System;
 using System.Collections.Generic;
-using System.Drawing;
 using System.Globalization;
 using System.IO;
 
@@ -155,11 +154,11 @@ namespace Maps.Serialization
                 writer.Write(route.EndHex);
 
                 SectorStylesheet.StyleResult ssr = sector.ApplyStylesheet("route", route.Allegiance);
-                Color? color = route.Color ?? ssr.GetColor("color");
-                if (color.HasValue)
+                string? colorHtml = route.Color?.Html ?? ssr.GetColor("color")?.Html;
+                if (colorHtml != null)
                 {
                     writer.Write(" ");
-                    writer.Write(ColorTranslator.ToHtml(color.Value).ToLowerInvariant());
+                    writer.Write(colorHtml.ToLowerInvariant());
                 }
 
                 writer.WriteLine();
@@ -209,11 +208,11 @@ namespace Maps.Serialization
                 writer.Write(border.PathString);
 
                 SectorStylesheet.StyleResult ssr = sector.ApplyStylesheet(border is Region ? "region" : "border", alleg?.T5Code ?? code);
-                Color? color = border.Color ?? ssr.GetColor("color");
-                if (color.HasValue)
+                string? colorHtml = border.Color?.Html ?? ssr.GetColor("color")?.Html;
+                if (colorHtml != null)
                 {
                     writer.Write(" ");
-                    writer.Write(ColorTranslator.ToHtml(color.Value).ToLowerInvariant());
+                    writer.Write(colorHtml.ToLowerInvariant());
                 }
                 writer.WriteLine();
             }

@@ -6,7 +6,6 @@ using Maps.Utilities;
 using System;
 using System.Collections.Generic;
 using System.ComponentModel;
-using System.Drawing;
 using System.Globalization;
 using System.IO;
 using System.Linq;
@@ -679,12 +678,12 @@ namespace Maps
         [DefaultValue(false)]
         public bool WrapLabel { get; set; }
 
-        internal Color? Color { get; set; }
+        internal ColorRef? Color { get; set; }
         [XmlAttribute("Color"), JsonName("Color")]
         public string? ColorHtml
         {
-            get => Color.HasValue ? ColorTranslator.ToHtml(Color.Value) : null;
-            set { if (value != null) Color = ColorUtil.ParseColor(value); }
+            get => Color?.Html;
+            set => Color = value != null ? new ColorRef(value) : null;
         }
 
         [XmlAttribute]
@@ -906,12 +905,12 @@ namespace Maps
 #pragma warning restore IDE1006 // Naming Styles
         public bool ShouldSerialize_Width() => Width.HasValue;
 
-        internal Color? Color { get; set; }
+        internal ColorRef? Color { get; set; }
         [XmlAttribute("Color"), JsonName("Color")]
         public string? ColorHtml
         {
-            get => Color.HasValue ? ColorTranslator.ToHtml(Color.Value) : null;
-            set { if (value != null) Color = ColorUtil.ParseColor(value); }
+            get => Color?.Html;
+            set => Color = value != null ? new ColorRef(value) : null;
         }
 
         [XmlAttribute]
@@ -947,7 +946,7 @@ namespace Maps
             Text = text;
         }
 
-        public static Color DefaultColor => TravellerColors.Amber;
+        public static ColorRef DefaultColor => TravellerColors.Amber;
 
         internal Hex Hex { get; set; }
         [XmlAttribute("Hex"), JsonName("Hex")]
@@ -956,12 +955,12 @@ namespace Maps
         [XmlAttribute]
         public string? Allegiance { get; set; }
 
-        internal Color? Color { get; set; }
+        internal ColorRef? Color { get; set; }
         [XmlAttribute("Color"), JsonName("Color")]
         public string? ColorHtml
         {
-            get => Color == null ? null : ColorTranslator.ToHtml(Color.Value);
-            set { if (value != null) Color = ColorUtil.ParseColor(value); }
+            get => Color?.Html;
+            set => Color = value != null ? new ColorRef(value) : null;
         }
 
         [XmlAttribute]

@@ -1,6 +1,5 @@
 #nullable enable
 using System;
-using System.Drawing;
 using System.Globalization;
 
 namespace Maps
@@ -73,14 +72,11 @@ namespace Maps
 
         }
 
-        public static PointF HexToCenter(Point point)
+        public static System.Drawing.PointF HexToCenter(Point point)
         {
-            PointF pf = PointF.Empty;
-
-            pf.X = point.X - 0.5f;
-            pf.Y = point.Y - ((point.X % 2) != 0 ? 0.0f : 0.5f);
-
-            return pf;
+            float x = point.X - 0.5f;
+            float y = point.Y - ((point.X % 2) != 0 ? 0.0f : 0.5f);
+            return new System.Drawing.PointF(x, y);
         }
 
         public static Hex HexNeighbor(Hex hex, int direction)
