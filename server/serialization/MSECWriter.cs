@@ -15,6 +15,7 @@ namespace Maps.Serialization
 
         public override void Serialize(TextWriter writer, Sector sector)
         {
+            writer.NewLine = "\r\n";
             new Serializer(sector, writer).Serialize();
             writer.Flush();
         }

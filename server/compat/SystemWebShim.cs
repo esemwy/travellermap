@@ -290,8 +290,36 @@ namespace System.Web.Hosting
 {
     public static class HostingEnvironment
     {
-        public static string? ApplicationPhysicalPath => throw new NotImplementedException();
-        public static string MapPath(string virtualPath) => throw new NotImplementedException();
+        // Walk up from the assembly output directory to find the directory
+        // containing "res/" (the content root). Replaced by IWebHostEnvironment in issue #3.
+        private static readonly string s_contentRoot = FindContentRoot();
+
+        private static string FindContentRoot()
+        {
+            // Check for res/styles/ which only exists in the real project root,
+            // not in the partial res/ copy the Web SDK places in output directories.
+            string dir = System.AppContext.BaseDirectory;
+            while (!string.IsNullOrEmpty(dir))
+            {
+                if (System.IO.Directory.Exists(System.IO.Path.Combine(dir, "res", "styles")))
+                    return dir;
+                string? parent = System.IO.Path.GetDirectoryName(dir);
+                if (parent == dir) break;
+                dir = parent!;
+            }
+            throw new InvalidOperationException(
+                $"Cannot locate content root (searching for 'res/styles/' from '{System.AppContext.BaseDirectory}')");
+        }
+
+        public static string? ApplicationPhysicalPath => s_contentRoot;
+
+        public static string MapPath(string virtualPath)
+        {
+            if (virtualPath.StartsWith("~/", System.StringComparison.Ordinal))
+                virtualPath = virtualPath[2..];
+            return System.IO.Path.Combine(s_contentRoot,
+                virtualPath.TrimStart('/').Replace('/', System.IO.Path.DirectorySeparatorChar));
+        }
     }
 }
 
