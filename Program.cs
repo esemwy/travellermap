@@ -165,7 +165,61 @@ app.MapMethods("/api/poster/{sector}/{quadrant:regex(^(alpha|beta|gamma|delta)$)
     (string sector, string quadrant) => Stub("PosterHandler/quadrant"));
 app.MapMethods("/api/poster/{sector}/{subsector}", ["GET","POST"],
     (string sector, string subsector) => Stub("PosterHandler/subsector"));
-app.MapGet("/api/tile", () => Stub("TileHandler"));
+app.MapGet("/api/tile", (HttpContext ctx) =>
+{
+    double x     = double.TryParse(ctx.Request.Query["x"],     out double xv) ? xv : 0;
+    double y     = double.TryParse(ctx.Request.Query["y"],     out double yv) ? yv : 0;
+    double scale = double.TryParse(ctx.Request.Query["scale"], out double sv) ? sv : 64;
+    int    w     = int.TryParse(ctx.Request.Query["w"],        out int    wv) ? wv : 256;
+    int    h     = int.TryParse(ctx.Request.Query["h"],        out int    hv) ? hv : 256;
+    string? milieu = ctx.Request.Query["milieu"];
+
+    scale = Math.Clamp(scale, Maps.API.ImageHandlerBase.MinScale, Maps.API.ImageHandlerBase.MaxScale);
+    w = Math.Clamp(w, 1, 2048);
+    h = Math.Clamp(h, 1, 2048);
+
+    try
+    {
+        var resourceManager = Maps.ResourceManager.GetInstance();
+        var tileRect = new System.Drawing.RectangleF
+        {
+            X      = (float)(x * w / (scale * Maps.Astrometrics.ParsecScaleX)),
+            Y      = (float)(y * h / (scale * Maps.Astrometrics.ParsecScaleY)),
+            Width  = (float)(w / (scale * Maps.Astrometrics.ParsecScaleX)),
+            Height = (float)(h / (scale * Maps.Astrometrics.ParsecScaleY))
+        };
+
+        var options  = Maps.Rendering.MapOptions.SectorGrid | Maps.Rendering.MapOptions.BordersMajor
+                     | Maps.Rendering.MapOptions.NamesMajor | Maps.Rendering.MapOptions.NamesMinor;
+        var style    = Maps.Rendering.Style.Poster;
+        var styles   = new Maps.Rendering.Stylesheet(scale, options, style);
+        var selector = new Maps.RectSelector(
+            Maps.SectorMap.ForMilieu(milieu), resourceManager, tileRect);
+        var renderCtx = new Maps.Rendering.RenderContext(
+            resourceManager, selector, tileRect, scale, options, styles, new System.Drawing.Size(w, h))
+        {
+            ClipOutsectorBorders = true
+        };
+
+        using var bitmap = new SkiaSharp.SKBitmap(w, h,
+            SkiaSharp.SKColorType.Bgra8888, SkiaSharp.SKAlphaType.Premul);
+        using (var canvas = new SkiaSharp.SKCanvas(bitmap))
+        {
+            canvas.Clear(SkiaSharp.SKColors.White);
+            using var graphics = new Maps.Graphics.BitmapGraphics(canvas);
+            graphics.MultiplyTransform(Maps.Graphics.AbstractMatrix.Identity);
+            renderCtx.Render(graphics);
+        }
+
+        using var encoded = bitmap.Encode(SkiaSharp.SKEncodedImageFormat.Png, 100);
+        byte[] bytes = encoded.ToArray();
+        return Results.Bytes(bytes, "image/png");
+    }
+    catch (Exception ex)
+    {
+        return Results.Problem(ex.Message, statusCode: 500);
+    }
+});
 
 // ── Location queries ────────────────────────────────────────────────────────
 

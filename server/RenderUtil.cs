@@ -122,10 +122,8 @@ namespace Maps.Rendering
             var lines = text.Split(new string[] { "\r\n", "\n" }, StringSplitOptions.None).ToList();
             var sizes = lines.Select(s => g.MeasureString(s, font)).ToList();
 
-            float fontUnitsToWorldUnits = font.Size / font.FontFamily.GetEmHeight(font.Style);
-            float lineSpacing = font.FontFamily.GetLineSpacing(font.Style) * fontUnitsToWorldUnits;
-            float ascent = font.FontFamily.GetCellAscent(font.Style) * fontUnitsToWorldUnits;
-            //float descent = font.FontFamily.GetCellDescent(font.Style) * fontUnitsToWorldUnits;
+            float lineSpacing = font.GetLineSpacing();
+            float ascent = font.GetAscent();
 
             SizeF boundingSize = new SizeF(sizes.Max(s => s.Width), lineSpacing * sizes.Count());
 

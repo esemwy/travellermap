@@ -4,6 +4,7 @@
 #nullable enable
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Collections.Specialized;
 using System.IO;
 using System.Text;
@@ -317,8 +318,34 @@ namespace System.Web.Hosting
         {
             if (virtualPath.StartsWith("~/", System.StringComparison.Ordinal))
                 virtualPath = virtualPath[2..];
-            return System.IO.Path.Combine(s_contentRoot,
-                virtualPath.TrimStart('/').Replace('/', System.IO.Path.DirectorySeparatorChar));
+
+            // Resolve path components case-insensitively (Linux filesystem is case-sensitive;
+            // the sector data was authored on Windows where filenames are case-insensitive).
+            var parts = virtualPath.TrimStart('/').Split('/');
+            string current = s_contentRoot;
+            foreach (var part in parts)
+            {
+                string exact = System.IO.Path.Combine(current, part);
+                if (System.IO.File.Exists(exact) || System.IO.Directory.Exists(exact))
+                {
+                    current = exact;
+                }
+                else
+                {
+                    // Case-insensitive fallback
+                    string? match = null;
+                    try
+                    {
+                        match = System.IO.Directory.GetFileSystemEntries(current)
+                            .FirstOrDefault(e => string.Equals(
+                                System.IO.Path.GetFileName(e), part,
+                                System.StringComparison.OrdinalIgnoreCase));
+                    }
+                    catch { }
+                    current = match ?? exact; // use best-effort path even if missing
+                }
+            }
+            return current;
         }
     }
 }

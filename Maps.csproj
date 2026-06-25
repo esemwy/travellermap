@@ -23,8 +23,7 @@
     <!-- AbstractGraphics.cs uses PdfSharp 1.5 GDI-only APIs (ToGdiMatrix, FromGdiPlusImage);
          replaced by AbstractGraphicsShim.cs until SkiaSharp port in issue #5 -->
     <Compile Remove="server/graphics/AbstractGraphics.cs" />
-    <!-- BitmapGraphics.cs: SkiaSharp port in issue #5 -->
-    <Compile Remove="server/graphics/BitmapGraphics.cs" />
+    <!-- BitmapGraphics.cs: SkiaSharp implementation added in issue #5 -->
     <!-- PdfSharpGraphics.cs: PdfSharp 6.x port in issue #6 -->
     <Compile Remove="server/graphics/PdfSharpGraphics.cs" />
   </ItemGroup>
