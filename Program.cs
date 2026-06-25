@@ -504,10 +504,12 @@ app.MapGet("/api/tile", (HttpContext ctx) =>
     int    w     = int.TryParse(ctx.Request.Query["w"],        out int    wv) ? wv : 256;
     int    h     = int.TryParse(ctx.Request.Query["h"],        out int    hv) ? hv : 256;
     string? milieu = ctx.Request.Query["milieu"];
+    double dpr   = double.TryParse(ctx.Request.Query["dpr"],   out double dv) ? dv : 1.0;
 
     scale = Math.Clamp(scale, Maps.API.ImageHandlerBase.MinScale, Maps.API.ImageHandlerBase.MaxScale);
     w = Math.Clamp(w, 1, 2048);
     h = Math.Clamp(h, 1, 2048);
+    dpr = Math.Clamp(Math.Round(dpr, 1), 1.0, 2.0);
 
     try
     {
@@ -532,13 +534,15 @@ app.MapGet("/api/tile", (HttpContext ctx) =>
             ClipOutsectorBorders = true
         };
 
-        using var bitmap = new SkiaSharp.SKBitmap(w, h,
+        int bw = (int)Math.Floor(w * dpr);
+        int bh = (int)Math.Floor(h * dpr);
+        using var bitmap = new SkiaSharp.SKBitmap(bw, bh,
             SkiaSharp.SKColorType.Bgra8888, SkiaSharp.SKAlphaType.Premul);
         using (var canvas = new SkiaSharp.SKCanvas(bitmap))
         {
             canvas.Clear(SkiaSharp.SKColors.White);
             using var graphics = new Maps.Graphics.BitmapGraphics(canvas);
-            graphics.MultiplyTransform(Maps.Graphics.AbstractMatrix.Identity);
+            graphics.ScaleTransform((float)dpr);
             renderCtx.Render(graphics);
         }
 
