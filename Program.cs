@@ -506,6 +506,25 @@ app.MapGet("/api/tile", (HttpContext ctx) =>
     string? milieu = ctx.Request.Query["milieu"];
     double dpr   = double.TryParse(ctx.Request.Query["dpr"],   out double dv) ? dv : 1.0;
 
+    // Default options match map.js Defaults.options
+    var options = Maps.Rendering.MapOptions.SectorGrid | Maps.Rendering.MapOptions.SubsectorGrid
+                | Maps.Rendering.MapOptions.SectorsSelected
+                | Maps.Rendering.MapOptions.BordersMajor | Maps.Rendering.MapOptions.BordersMinor
+                | Maps.Rendering.MapOptions.NamesMajor
+                | Maps.Rendering.MapOptions.WorldsCapitals | Maps.Rendering.MapOptions.WorldsHomeworlds;
+    if (int.TryParse(ctx.Request.Query["options"], out int optv))
+        options = (Maps.Rendering.MapOptions)optv;
+
+    var style = Maps.Rendering.Style.Poster;
+    string? styleStr = ctx.Request.Query["style"].ToString();
+    if (!string.IsNullOrEmpty(styleStr))
+        style = styleStr.ToLowerInvariant() switch {
+            "atlas"  => Maps.Rendering.Style.Atlas,
+            "print"  => Maps.Rendering.Style.Print,
+            "candy"  => Maps.Rendering.Style.Candy,
+            _        => Maps.Rendering.Style.Poster,
+        };
+
     scale = Math.Clamp(scale, Maps.API.ImageHandlerBase.MinScale, Maps.API.ImageHandlerBase.MaxScale);
     w = Math.Clamp(w, 1, 2048);
     h = Math.Clamp(h, 1, 2048);
@@ -522,12 +541,23 @@ app.MapGet("/api/tile", (HttpContext ctx) =>
             Height = (float)(h / (scale * Maps.Astrometrics.ParsecScaleY))
         };
 
-        var options  = Maps.Rendering.MapOptions.SectorGrid | Maps.Rendering.MapOptions.BordersMajor
-                     | Maps.Rendering.MapOptions.NamesMajor | Maps.Rendering.MapOptions.NamesMinor;
-        var style    = Maps.Rendering.Style.Poster;
         var styles   = new Maps.Rendering.Stylesheet(scale, options, style);
-        var selector = new Maps.RectSelector(
-            Maps.SectorMap.ForMilieu(milieu), resourceManager, tileRect);
+
+        // Apply per-parameter stylesheet overrides (mirrors ImageHandlerBase behavior)
+        if (!string.IsNullOrEmpty(milieu) && milieu != Maps.SectorMap.DEFAULT_MILIEU)
+        {
+            if (styles.macroBorders.visible) { styles.macroBorders.visible = false; styles.microBorders.visible = true; }
+            styles.macroNames.visible  = false;
+            styles.macroRoutes.visible = false;
+        }
+        if (ctx.Request.Query["routes"] == "0") { styles.macroRoutes.visible = false; styles.microRoutes.visible = false; }
+        if (ctx.Request.Query["rifts"]  == "0") styles.showRiftOverlay = false;
+        if (ctx.Request.Query["po"]     == "1") styles.populationOverlay.visible = true;
+        if (ctx.Request.Query["im"]     == "1") styles.importanceOverlay.visible = true;
+        if (ctx.Request.Query["cp"]     == "1") styles.capitalOverlay.visible    = true;
+        if (ctx.Request.Query["dimunofficial"] == "1") styles.dimUnofficialSectors = true;
+
+        var selector  = new Maps.RectSelector(Maps.SectorMap.ForMilieu(milieu), resourceManager, tileRect);
         var renderCtx = new Maps.Rendering.RenderContext(
             resourceManager, selector, tileRect, scale, options, styles, new System.Drawing.Size(w, h))
         {
