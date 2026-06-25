@@ -74,26 +74,6 @@ app.Use(async (context, next) =>
     await next(context);
 });
 
-// ── Diagnostic ───────────────────────────────────────────────────────────────
-app.MapGet("/debug/fonts", () =>
-{
-    var sb = new System.Text.StringBuilder();
-    var testFamilies = new[] { "Arial", "Liberation Sans", "DejaVu Sans" };
-    var testStyles   = new[] { SkiaSharp.SKFontStyle.Normal, SkiaSharp.SKFontStyle.Bold };
-    foreach (var style in testStyles)
-    {
-        sb.AppendLine($"Style: {style}");
-        foreach (var family in testFamilies)
-        {
-            var tf = SkiaSharp.SKTypeface.FromFamilyName(family, style);
-            bool match = tf?.FamilyName?.Equals(family, StringComparison.OrdinalIgnoreCase) ?? false;
-            sb.AppendLine($"  Request '{family}' → FamilyName='{tf?.FamilyName}' match={match}");
-        }
-    }
-    sb.AppendLine($"SKTypeface.Default: '{SkiaSharp.SKTypeface.Default?.FamilyName}'");
-    return Results.Text(sb.ToString());
-});
-
 // ── Navigation redirects ────────────────────────────────────────────────────
 
 app.MapGet("/go/{sector}", (string sector) =>

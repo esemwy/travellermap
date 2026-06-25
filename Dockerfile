@@ -10,12 +10,16 @@ RUN dotnet publish Maps.csproj -c Release -o /app/publish --no-restore
 FROM mcr.microsoft.com/dotnet/aspnet:8.0 AS runtime
 WORKDIR /app
 
-# SkiaSharp native library dependencies + fonts-liberation (metric-compatible Arial substitute)
+# SkiaSharp native library dependencies + fontconfig for fc-cache
 RUN apt-get update && apt-get install -y --no-install-recommends \
     libfontconfig1 \
     libfreetype6 \
-    fonts-liberation \
+    fontconfig \
     && rm -rf /var/lib/apt/lists/*
+
+# Microsoft TrueType core fonts (Arial, etc.) — pre-build the fontconfig cache
+COPY msttcorefonts/ /usr/local/share/fonts/msttcorefonts/
+RUN fc-cache -f /usr/local/share/fonts/msttcorefonts/
 
 COPY --from=build /app/publish .
 COPY res/ res/
