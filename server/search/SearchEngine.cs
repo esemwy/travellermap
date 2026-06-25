@@ -327,7 +327,7 @@ namespace Maps.Search
             if (m.Success)
             {
                 int hex = int.Parse(m.Groups["hex"].Value);
-                clauses.Add("sector_name LIKE @term + '%'");
+                clauses.Add("sector_name LIKE CONCAT(@term, '%')");
                 terms.Add(m.Groups["sector"].Value);
                 clauses.Add("hex_x = @term");
                 terms.Add((hex / 100).ToString());
@@ -364,9 +364,9 @@ namespace Maps.Search
                 else if (op == "cx:")     { clause = "cx LIKE @term";                                             types = SearchResultsType.Worlds; }
                 else if (op == "zone:")   { clause = "zone LIKE @term";                                           types = SearchResultsType.Worlds; }
                 else if (op == "alleg:")  { clause = "alleg LIKE @term";                                          types = SearchResultsType.Worlds; }
-                else if (op == "stellar:"){ clause = "' ' + stellar + ' ' LIKE '% ' + @term + ' %'";             types = SearchResultsType.Worlds; }
-                else if (op == "remark:") { clause = "' ' + remarks + ' ' LIKE '% ' + @term + ' %'";             types = SearchResultsType.Worlds; }
-                else if (op == "in:")     { clause = "sector_name LIKE '%' + @term + '%'";                        types = SearchResultsType.Worlds; }
+                else if (op == "stellar:"){ clause = "CONCAT(' ', stellar, ' ') LIKE CONCAT('% ', @term, ' %')";  types = SearchResultsType.Worlds; }
+                else if (op == "remark:") { clause = "CONCAT(' ', remarks, ' ') LIKE CONCAT('% ', @term, ' %')"; types = SearchResultsType.Worlds; }
+                else if (op == "in:")     { clause = "sector_name LIKE CONCAT('%', @term, '%')";                  types = SearchResultsType.Worlds; }
                 else if (op == "exact:")  { clause = "name LIKE @term"; }
                 else if (op == "like:")   { clause = "SOUNDEX(name) = SOUNDEX(@term)"; }
                 else if (quoted)          { clause = "name LIKE @term"; }
@@ -374,7 +374,7 @@ namespace Maps.Search
                 else if (term.Equals("sector",    StringComparison.InvariantCultureIgnoreCase)) { types = SearchResultsType.Sectors;    continue; }
                 else if (term.Equals("subsector", StringComparison.InvariantCultureIgnoreCase)) { types = SearchResultsType.Subsectors; continue; }
                 else if (term.Equals("world",     StringComparison.InvariantCultureIgnoreCase)) { types = SearchResultsType.Worlds;     continue; }
-                else    { clause = "name LIKE @term + '%' OR name LIKE '% ' + @term + '%'"; }
+                else    { clause = "name LIKE CONCAT(@term, '%') OR name LIKE CONCAT('% ', @term, '%')"; }
 
                 clauses.Add(clause);
                 terms.Add(term);
