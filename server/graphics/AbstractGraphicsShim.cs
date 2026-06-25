@@ -210,4 +210,121 @@ namespace Maps.Graphics
         DashDotDot,
         Custom,
     }
+
+    // Stub base class so BitmapGraphics and PdfSharpGraphics compile while
+    // their real implementations are pending (issues #5 and #6).
+    internal abstract class GraphicsBase : AbstractGraphics
+    {
+        public abstract SmoothingMode SmoothingMode { get; set; }
+        public abstract System.Drawing.Graphics? Graphics { get; }
+        public abstract bool SupportsWingdings { get; }
+        public abstract void ScaleTransform(float scaleXY);
+        public abstract void ScaleTransform(float scaleX, float scaleY);
+        public abstract void TranslateTransform(float dx, float dy);
+        public abstract void RotateTransform(float angle);
+        public abstract void MultiplyTransform(AbstractMatrix m);
+        public abstract void IntersectClip(AbstractPath path);
+        public abstract void IntersectClip(RectangleF rect);
+        public abstract void DrawLine(AbstractPen pen, float x1, float y1, float x2, float y2);
+        public abstract void DrawLine(AbstractPen pen, PointF pt1, PointF pt2);
+        public abstract void DrawLines(AbstractPen pen, PointF[] points);
+        public abstract void DrawPath(AbstractPen pen, AbstractPath path);
+        public abstract void DrawPath(AbstractBrush brush, AbstractPath path);
+        public abstract void DrawCurve(AbstractPen pen, PointF[] points, float tension = 0.5f);
+        public abstract void DrawClosedCurve(AbstractPen pen, PointF[] points, float tension = 0.5f);
+        public abstract void DrawClosedCurve(AbstractBrush brush, PointF[] points, float tension = 0.5f);
+        public abstract void DrawRectangle(AbstractPen pen, float x, float y, float width, float height);
+        public abstract void DrawRectangle(AbstractPen pen, RectangleF rect);
+        public abstract void DrawRectangle(AbstractBrush brush, float x, float y, float width, float height);
+        public abstract void DrawRectangle(AbstractBrush brush, RectangleF rect);
+        public abstract void DrawEllipse(AbstractPen pen, float x, float y, float width, float height);
+        public abstract void DrawEllipse(AbstractBrush brush, float x, float y, float width, float height);
+        public abstract void DrawEllipse(AbstractPen pen, AbstractBrush brush, float x, float y, float width, float height);
+        public abstract void DrawArc(AbstractPen pen, float x, float y, float width, float height, float startAngle, float sweepAngle);
+        public abstract void DrawImage(AbstractImage image, float x, float y, float width, float height);
+        public abstract void DrawImageAlpha(float alpha, AbstractImage image, RectangleF targetRect);
+        public abstract SizeF MeasureString(string text, AbstractFont font);
+        public abstract void DrawString(string s, AbstractFont font, AbstractBrush brush, float x, float y, StringAlignment format);
+        public abstract AbstractGraphicsState Save();
+        public abstract void Restore(AbstractGraphicsState state);
+        public abstract void Dispose();
+    }
+
+    // Stub; replaced by SkiaSharp implementation in issue #5.
+    internal sealed class BitmapGraphics : GraphicsBase
+    {
+        internal BitmapGraphics(System.Drawing.Graphics g) => throw new NotImplementedException();
+        public override SmoothingMode SmoothingMode { get => throw new NotImplementedException(); set => throw new NotImplementedException(); }
+        public override System.Drawing.Graphics? Graphics => throw new NotImplementedException();
+        public override bool SupportsWingdings => throw new NotImplementedException();
+        public override void ScaleTransform(float scaleXY) => throw new NotImplementedException();
+        public override void ScaleTransform(float scaleX, float scaleY) => throw new NotImplementedException();
+        public override void TranslateTransform(float dx, float dy) => throw new NotImplementedException();
+        public override void RotateTransform(float angle) => throw new NotImplementedException();
+        public override void MultiplyTransform(AbstractMatrix m) => throw new NotImplementedException();
+        public override void IntersectClip(AbstractPath path) => throw new NotImplementedException();
+        public override void IntersectClip(RectangleF rect) => throw new NotImplementedException();
+        public override void DrawLine(AbstractPen pen, float x1, float y1, float x2, float y2) => throw new NotImplementedException();
+        public override void DrawLine(AbstractPen pen, PointF pt1, PointF pt2) => throw new NotImplementedException();
+        public override void DrawLines(AbstractPen pen, PointF[] points) => throw new NotImplementedException();
+        public override void DrawPath(AbstractPen pen, AbstractPath path) => throw new NotImplementedException();
+        public override void DrawPath(AbstractBrush brush, AbstractPath path) => throw new NotImplementedException();
+        public override void DrawCurve(AbstractPen pen, PointF[] points, float tension = 0.5f) => throw new NotImplementedException();
+        public override void DrawClosedCurve(AbstractPen pen, PointF[] points, float tension = 0.5f) => throw new NotImplementedException();
+        public override void DrawClosedCurve(AbstractBrush brush, PointF[] points, float tension = 0.5f) => throw new NotImplementedException();
+        public override void DrawRectangle(AbstractPen pen, float x, float y, float width, float height) => throw new NotImplementedException();
+        public override void DrawRectangle(AbstractPen pen, RectangleF rect) => throw new NotImplementedException();
+        public override void DrawRectangle(AbstractBrush brush, float x, float y, float width, float height) => throw new NotImplementedException();
+        public override void DrawRectangle(AbstractBrush brush, RectangleF rect) => throw new NotImplementedException();
+        public override void DrawEllipse(AbstractPen pen, float x, float y, float width, float height) => throw new NotImplementedException();
+        public override void DrawEllipse(AbstractBrush brush, float x, float y, float width, float height) => throw new NotImplementedException();
+        public override void DrawEllipse(AbstractPen pen, AbstractBrush brush, float x, float y, float width, float height) => throw new NotImplementedException();
+        public override void DrawArc(AbstractPen pen, float x, float y, float width, float height, float startAngle, float sweepAngle) => throw new NotImplementedException();
+        public override void DrawImage(AbstractImage image, float x, float y, float width, float height) => throw new NotImplementedException();
+        public override void DrawImageAlpha(float alpha, AbstractImage image, RectangleF targetRect) => throw new NotImplementedException();
+        public override SizeF MeasureString(string text, AbstractFont font) => throw new NotImplementedException();
+        public override void DrawString(string s, AbstractFont font, AbstractBrush brush, float x, float y, StringAlignment format) => throw new NotImplementedException();
+        public override AbstractGraphicsState Save() => throw new NotImplementedException();
+        public override void Restore(AbstractGraphicsState state) => throw new NotImplementedException();
+        public override void Dispose() { }
+    }
+
+    // Stub; replaced by PdfSharp 6.x implementation in issue #6.
+    internal sealed class PdfSharpGraphics : GraphicsBase
+    {
+        internal PdfSharpGraphics(PdfSharp.Drawing.XGraphics gfx) => throw new NotImplementedException();
+        public override SmoothingMode SmoothingMode { get => throw new NotImplementedException(); set => throw new NotImplementedException(); }
+        public override System.Drawing.Graphics? Graphics => throw new NotImplementedException();
+        public override bool SupportsWingdings => throw new NotImplementedException();
+        public override void ScaleTransform(float scaleXY) => throw new NotImplementedException();
+        public override void ScaleTransform(float scaleX, float scaleY) => throw new NotImplementedException();
+        public override void TranslateTransform(float dx, float dy) => throw new NotImplementedException();
+        public override void RotateTransform(float angle) => throw new NotImplementedException();
+        public override void MultiplyTransform(AbstractMatrix m) => throw new NotImplementedException();
+        public override void IntersectClip(AbstractPath path) => throw new NotImplementedException();
+        public override void IntersectClip(RectangleF rect) => throw new NotImplementedException();
+        public override void DrawLine(AbstractPen pen, float x1, float y1, float x2, float y2) => throw new NotImplementedException();
+        public override void DrawLine(AbstractPen pen, PointF pt1, PointF pt2) => throw new NotImplementedException();
+        public override void DrawLines(AbstractPen pen, PointF[] points) => throw new NotImplementedException();
+        public override void DrawPath(AbstractPen pen, AbstractPath path) => throw new NotImplementedException();
+        public override void DrawPath(AbstractBrush brush, AbstractPath path) => throw new NotImplementedException();
+        public override void DrawCurve(AbstractPen pen, PointF[] points, float tension = 0.5f) => throw new NotImplementedException();
+        public override void DrawClosedCurve(AbstractPen pen, PointF[] points, float tension = 0.5f) => throw new NotImplementedException();
+        public override void DrawClosedCurve(AbstractBrush brush, PointF[] points, float tension = 0.5f) => throw new NotImplementedException();
+        public override void DrawRectangle(AbstractPen pen, float x, float y, float width, float height) => throw new NotImplementedException();
+        public override void DrawRectangle(AbstractPen pen, RectangleF rect) => throw new NotImplementedException();
+        public override void DrawRectangle(AbstractBrush brush, float x, float y, float width, float height) => throw new NotImplementedException();
+        public override void DrawRectangle(AbstractBrush brush, RectangleF rect) => throw new NotImplementedException();
+        public override void DrawEllipse(AbstractPen pen, float x, float y, float width, float height) => throw new NotImplementedException();
+        public override void DrawEllipse(AbstractBrush brush, float x, float y, float width, float height) => throw new NotImplementedException();
+        public override void DrawEllipse(AbstractPen pen, AbstractBrush brush, float x, float y, float width, float height) => throw new NotImplementedException();
+        public override void DrawArc(AbstractPen pen, float x, float y, float width, float height, float startAngle, float sweepAngle) => throw new NotImplementedException();
+        public override void DrawImage(AbstractImage image, float x, float y, float width, float height) => throw new NotImplementedException();
+        public override void DrawImageAlpha(float alpha, AbstractImage image, RectangleF targetRect) => throw new NotImplementedException();
+        public override SizeF MeasureString(string text, AbstractFont font) => throw new NotImplementedException();
+        public override void DrawString(string s, AbstractFont font, AbstractBrush brush, float x, float y, StringAlignment format) => throw new NotImplementedException();
+        public override AbstractGraphicsState Save() => throw new NotImplementedException();
+        public override void Restore(AbstractGraphicsState state) => throw new NotImplementedException();
+        public override void Dispose() { }
+    }
 }

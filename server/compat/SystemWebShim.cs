@@ -26,12 +26,16 @@ namespace System.Web
         public virtual string Path => throw new NotImplementedException();
         public virtual Uri Url => throw new NotImplementedException();
         public virtual bool IsLocal => throw new NotImplementedException();
+        public virtual bool IsSecureConnection => throw new NotImplementedException();
+        public virtual string HttpMethod => throw new NotImplementedException();
         public virtual NameValueCollection QueryString => throw new NotImplementedException();
         public virtual NameValueCollection Form => throw new NotImplementedException();
         public virtual NameValueCollection Headers => throw new NotImplementedException();
         public virtual string[] AcceptTypes => throw new NotImplementedException();
         public virtual string ContentType => throw new NotImplementedException();
+        public virtual Encoding ContentEncoding => throw new NotImplementedException();
         public virtual string? UserAgent => throw new NotImplementedException();
+        public virtual Stream InputStream => throw new NotImplementedException();
         public virtual HttpFileCollectionBase Files => throw new NotImplementedException();
         public virtual string? this[string key] => throw new NotImplementedException();
     }
@@ -43,6 +47,7 @@ namespace System.Web
         public virtual string? ContentType { get; set; }
         public virtual Encoding ContentEncoding { get; set; } = Encoding.UTF8;
         public virtual bool TrySkipIisCustomErrors { get; set; }
+        public virtual bool BufferOutput { get; set; }
         public virtual TextWriter Output => throw new NotImplementedException();
         public virtual Stream OutputStream => throw new NotImplementedException();
         public virtual HttpCachePolicy Cache => throw new NotImplementedException();
@@ -60,7 +65,7 @@ namespace System.Web
 
     public abstract class HttpFileCollectionBase
     {
-        public virtual HttpPostedFileBase? this[string name] => throw new NotImplementedException();
+        public virtual HttpPostedFile? this[string name] => throw new NotImplementedException();
     }
 
     public abstract class HttpPostedFileBase
@@ -86,12 +91,16 @@ namespace System.Web
         public override string Path => throw new NotImplementedException();
         public override Uri Url => throw new NotImplementedException();
         public override bool IsLocal => throw new NotImplementedException();
+        public override bool IsSecureConnection => throw new NotImplementedException();
+        public override string HttpMethod => throw new NotImplementedException();
         public override NameValueCollection QueryString => throw new NotImplementedException();
         public override NameValueCollection Form => throw new NotImplementedException();
         public override NameValueCollection Headers => throw new NotImplementedException();
         public override string[] AcceptTypes => throw new NotImplementedException();
         public override string ContentType => throw new NotImplementedException();
+        public override Encoding ContentEncoding => throw new NotImplementedException();
         public override string? UserAgent => throw new NotImplementedException();
+        public override Stream InputStream => throw new NotImplementedException();
         public override HttpFileCollectionBase Files => throw new NotImplementedException();
         public override string? this[string key] => throw new NotImplementedException();
     }
@@ -103,6 +112,7 @@ namespace System.Web
         public override string? ContentType { get; set; }
         public override Encoding ContentEncoding { get; set; } = Encoding.UTF8;
         public override bool TrySkipIisCustomErrors { get; set; }
+        public override bool BufferOutput { get; set; }
         public override TextWriter Output => throw new NotImplementedException();
         public override Stream OutputStream => throw new NotImplementedException();
         public override HttpCachePolicy Cache => throw new NotImplementedException();
@@ -128,7 +138,7 @@ namespace System.Web
 
     public class HttpFileCollection : HttpFileCollectionBase
     {
-        public override HttpPostedFileBase? this[string name] => throw new NotImplementedException();
+        public override HttpPostedFile? this[string name] => throw new NotImplementedException();
     }
 
     public class HttpCookie
@@ -182,6 +192,7 @@ namespace System.Web
     public class HttpServerUtility
     {
         public string MapPath(string path) => throw new NotImplementedException();
+        public int ScriptTimeout { get; set; }
     }
 
     public interface IHttpHandler
@@ -286,14 +297,20 @@ namespace System.Web.Hosting
 
 namespace System.Web.Caching
 {
-    public class Cache
+    public class Cache : System.Collections.IEnumerable
     {
         public object? this[string key] { get => throw new NotImplementedException(); set => throw new NotImplementedException(); }
+        public int Count => throw new NotImplementedException();
+        public long EffectivePercentagePhysicalMemoryLimit => throw new NotImplementedException();
+        public long EffectivePrivateBytesLimit => throw new NotImplementedException();
         public void Insert(string key, object value) => throw new NotImplementedException();
         public void Insert(string key, object value, System.Web.Caching.CacheDependency? dependencies,
             DateTime absoluteExpiration, TimeSpan slidingExpiration,
             CacheItemPriority priority, CacheItemRemovedCallback? onRemoveCallback) => throw new NotImplementedException();
         public object? Remove(string key) => throw new NotImplementedException();
+        // Returns IDictionaryEnumerator so foreach can access .Key and .Value.
+        public System.Collections.IDictionaryEnumerator GetEnumerator() => throw new NotImplementedException();
+        System.Collections.IEnumerator System.Collections.IEnumerable.GetEnumerator() => throw new NotImplementedException();
     }
 
     public class CacheDependency { }

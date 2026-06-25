@@ -16,6 +16,8 @@
   <ItemGroup>
     <!-- AssemblyInfo.cs replaced by GenerateAssemblyInfo=false + explicit attributes -->
     <Compile Remove="AssemblyInfo.cs" />
+    <!-- Unit tests live in their own project -->
+    <Compile Remove="unittests/**" />
     <!-- Global.asax: replaced by Program.cs in issue #3 -->
     <Compile Remove="Global.asax.cs" />
     <!-- AbstractGraphics.cs uses PdfSharp 1.5 GDI-only APIs (ToGdiMatrix, FromGdiPlusImage);
@@ -34,7 +36,7 @@
     <PackageReference Include="PDFsharp" Version="6.2.4" />
     <PackageReference Include="SkiaSharp" Version="4.148.0" />
     <PackageReference Include="SkiaSharp.NativeAssets.Linux" Version="4.148.0" />
-    <PackageReference Include="System.Configuration.ConfigurationManager" Version="8.0.0" />
+    <PackageReference Include="System.Configuration.ConfigurationManager" Version="8.0.1" />
     <PackageReference Include="System.Drawing.Common" Version="8.0.0" />
   </ItemGroup>
 
