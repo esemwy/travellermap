@@ -123,8 +123,10 @@ namespace Maps.Graphics
                       ?? SKTypeface.Default;
             return new SKFont(typeface, font.Size)
             {
-                Edging  = SKFontEdging.Antialias,  // grayscale AA; SubpixelAntialias is display-only
-                Hinting = SKFontHinting.Normal,
+                Edging         = SKFontEdging.Antialias,
+                Hinting        = SKFontHinting.Normal,
+                LinearMetrics  = true,  // don't snap glyph advances to pixel boundaries
+                Subpixel       = true,
             };
         }
 
