@@ -214,7 +214,7 @@ namespace Maps.Rendering
 
     internal class Stylesheet
     {
-        public const string DEFAULT_FONT = "Arial";
+        public const string DEFAULT_FONT = "Arial,Liberation Sans,DejaVu Sans";
 
         private const float SectorGridMinScale = 1 / 2f; // Below this, no sector grid is shown
         private const float SectorGridFullScale = 4; // Above this, sector grid opaque
