@@ -1,0 +1,11 @@
+.git
+obj/
+bin/
+.vs/
+*.user
+*.suo
+*.sln.docstates
+node_modules/
+.claude/
+CLAUDE.md
+PRD.md
