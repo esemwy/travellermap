@@ -781,7 +781,7 @@ app.MapGet("/api/jumpworlds", (HttpContext ctx) =>
             UWP = w.UWP, PBG = w.PBG, Zone = w.Zone,
             Ix = w.Importance, Ex = w.Economic, Cx = w.Cultural,
             Nobility = w.Nobility, Remarks = w.Remarks,
-            Bases = w.Bases, Allegiance = w.Allegiance,
+            Bases = w.Bases, Allegiance = w.Allegiance, AllegianceName = w.AllegianceName,
             Stellar = w.Stellar, Worlds = w.Worlds,
             SubsectorName = w.SubsectorName,
             SectorAbbreviation = w.SectorAbbreviation,
