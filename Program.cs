@@ -22,6 +22,12 @@ builder.Services.AddCors(options =>
         policy.AllowAnyOrigin().AllowAnyMethod().AllowAnyHeader());
 });
 
+// The original API used PascalCase property names; preserve that in Results.Json().
+builder.Services.ConfigureHttpJsonOptions(options =>
+{
+    options.SerializerOptions.PropertyNamingPolicy = null;
+});
+
 var app = builder.Build();
 
 // Wire up the database connection factory based on configuration.
@@ -369,27 +375,83 @@ static IResult XmlResult<T>(T obj)
 
 app.MapGet("/api/search", (HttpContext ctx) =>
 {
+    string? q = Qs(ctx, "q");
+
+    // Special tour searches: "(Grand Tour)", "(Arrival Vengeance)", etc. map to static JSON files.
+    if (q != null)
+    {
+        var specialMatch = System.Text.RegularExpressions.Regex.Match(q, @"\(([A-Za-z0-9 ]+)\)");
+        if (specialMatch.Success)
+        {
+            string fileName = specialMatch.Groups[1].Value.Replace(" ", "") + ".json";
+            string filePath = System.IO.Path.Combine(System.IO.Directory.GetCurrentDirectory(), "res", "search", fileName);
+            if (System.IO.File.Exists(filePath))
+                return Results.Content(System.IO.File.ReadAllText(filePath), "application/json");
+        }
+    }
+
     if (DBUtil.Factory == null)
         return Results.Problem("Database not configured. Set ConnectionString in configuration.", statusCode: 503);
 
-    string? q       = ctx.Request.Query["q"];
-    string? milieu  = ctx.Request.Query["milieu"];
-    string? accept  = ctx.Request.Query["accept"];
-    bool    random  = ctx.Request.Query["random"] == "1";
-    int     limit   = int.TryParse(ctx.Request.Query["limit"], out int l) ? l : 160;
+    string? milieu = Qs(ctx, "milieu");
+    int limit = Qi(ctx, "limit", 160);
 
     try
     {
-        var results = SearchEngine.PerformSearch(milieu, q,
-            SearchEngine.SearchResultsType.Default, limit, random);
-        return Results.Json(new { results = results.Select(r => r switch
+        string? milieuStr = milieu ?? Maps.SectorMap.DEFAULT_MILIEU;
+        var map = Maps.SectorMap.ForMilieu(milieuStr);
+        var rm  = Maps.ResourceManager.GetInstance();
+
+        IEnumerable<SearchResult> rawResults;
+        int numResults;
+
+        if (q == "(random world)")
         {
-            SectorResult    s   => (object)new { type = "sector",    sx = s.SectorCoords.X, sy = s.SectorCoords.Y },
-            SubsectorResult s   => (object)new { type = "subsector", sx = s.SectorLocation.X, sy = s.SectorLocation.Y, index = s.Index.ToString() },
-            WorldResult     w   => (object)new { type = "world",     sx = w.Sector.X, sy = w.Sector.Y, hx = w.Hex.X, hy = w.Hex.Y },
-            LabelResult     lab => (object)new { type = "label",     x  = lab.Coords.X, y = lab.Coords.Y, name = lab.Label, radius = lab.Radius },
-            _                   => (object)new { type = "unknown" }
-        }).ToArray() });
+            numResults = 1;
+            rawResults = SearchEngine.PerformSearch(milieuStr, null, SearchEngine.SearchResultsType.Worlds, 1, random: true);
+        }
+        else
+        {
+            string? query = q;
+            if (query != null)
+            {
+                query = query.Replace('*', '%').Replace('?', '_');
+                if (System.Text.RegularExpressions.Regex.IsMatch(query, @"^\w{7}-\w$"))
+                    query = "uwp:" + query;
+            }
+            numResults = limit;
+            rawResults = SearchEngine.PerformSearch(milieuStr, query, SearchEngine.SearchResultsType.Default, numResults);
+        }
+
+        var items = rawResults
+            .Select(r => Maps.API.Results.SearchResults.SearchResultToItem(map, rm, r))
+            .OfType<Maps.API.Results.SearchResults.Item>()
+            .OrderByDescending(item => item.Importance)
+            .Take(numResults)
+            .Select(item => item switch
+            {
+                Maps.API.Results.SearchResults.WorldResult w => (object)new
+                {
+                    World = new { w.SectorX, w.SectorY, w.HexX, w.HexY, w.Name, w.Sector, w.Uwp, w.SectorTags }
+                },
+                Maps.API.Results.SearchResults.SubsectorResult ss => (object)new
+                {
+                    Subsector = new { ss.SectorX, ss.SectorY, ss.Name, ss.Sector, ss.Index, ss.SectorTags }
+                },
+                Maps.API.Results.SearchResults.SectorResult s => (object)new
+                {
+                    Sector = new { s.SectorX, s.SectorY, s.Name, s.SectorTags }
+                },
+                Maps.API.Results.SearchResults.LabelResult lab => (object)new
+                {
+                    Label = new { lab.SectorX, lab.SectorY, lab.HexX, lab.HexY, Scale = lab.Scale, lab.Name, lab.SectorTags }
+                },
+                _ => null
+            })
+            .Where(x => x != null)
+            .ToList();
+
+        return Results.Json(new { Results = new { Count = items.Count, Items = items } });
     }
     catch (Exception ex)
     {
