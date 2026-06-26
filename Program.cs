@@ -778,7 +778,13 @@ app.MapGet("/api/jumpworlds", (HttpContext ctx) =>
         return Results.Json(new { Worlds = selector.Worlds.Select(w => new {
             Sector = w.SectorName, SectorX = w.Sector.X, SectorY = w.Sector.Y,
             Name = w.Name, Hex = w.Hex, HexX = w.X, HexY = w.Y,
-            UWP = w.UWP, Zone = w.Zone
+            UWP = w.UWP, PBG = w.PBG, Zone = w.Zone,
+            Ix = w.Importance, Ex = w.Economic, Cx = w.Cultural,
+            Nobility = w.Nobility, Remarks = w.Remarks,
+            Bases = w.Bases, Allegiance = w.Allegiance,
+            Stellar = w.Stellar, Worlds = w.Worlds,
+            SubsectorName = w.SubsectorName,
+            SectorAbbreviation = w.SectorAbbreviation,
         }).ToArray() });
     }
     catch (Exception ex) { return Results.Problem(ex.Message, statusCode: 500); }
