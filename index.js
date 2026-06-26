@@ -238,7 +238,9 @@ const original_title = document.title;
 const SEARCH_PANES =
     ['search-results', 'route-ui', 'wds-visible', 'sds-visible'];
 function showSearchPane(pane, title) {
-  if (!['wds-visible', 'sds-visible'].includes(pane))
+  if (['wds-visible', 'sds-visible'].includes(pane))
+    document.body.classList.remove('ds-mini');
+  else
     document.body.classList.add('ds-mini');
   for (const c of SEARCH_PANES) {
     document.body.classList.toggle(c, c === pane);
