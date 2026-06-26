@@ -10,16 +10,18 @@ RUN dotnet publish Maps.csproj -c Release -o /app/publish --no-restore
 FROM mcr.microsoft.com/dotnet/aspnet:8.0 AS runtime
 WORKDIR /app
 
-# SkiaSharp native library dependencies + fontconfig for fc-cache
-RUN apt-get update && apt-get install -y --no-install-recommends \
-    libfontconfig1 \
-    libfreetype6 \
-    fontconfig \
-    && rm -rf /var/lib/apt/lists/*
-
-# Microsoft TrueType core fonts (Arial, etc.) — pre-build the fontconfig cache
-COPY msttcorefonts/ /usr/local/share/fonts/msttcorefonts/
-RUN fc-cache -f /usr/local/share/fonts/msttcorefonts/
+# SkiaSharp deps + Microsoft TrueType core fonts (Arial, etc.) via ttf-mscorefonts-installer
+RUN echo "deb http://deb.debian.org/debian bookworm contrib non-free" \
+        > /etc/apt/sources.list.d/contrib.list \
+    && echo "ttf-mscorefonts-installer msttcorefonts/accepted-mscorefonts-eula boolean true" \
+        | debconf-set-selections \
+    && apt-get update && apt-get install -y --no-install-recommends \
+        libfontconfig1 \
+        libfreetype6 \
+        fontconfig \
+        ttf-mscorefonts-installer \
+    && rm -rf /var/lib/apt/lists/* \
+    && fc-cache -f
 
 COPY --from=build /app/publish .
 COPY res/ res/
