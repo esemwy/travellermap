@@ -808,7 +808,7 @@ app.MapGet("/api/universe", (HttpContext ctx) =>
             .Select(s => new {
                 X = s.X, Y = s.Y, Milieu = s.CanonicalMilieu,
                 Abbreviation = s.Abbreviation, Tags = s.TagString,
-                Names = s.Names.Select(n => n.Text).ToArray()
+                Names = s.Names.Select(n => new { n.Text, n.Lang, n.Source }).ToArray()
             }).ToArray();
         return Results.Json(new { Sectors = sectors });
     }
@@ -820,7 +820,8 @@ app.MapGet("/api/milieux", (HttpContext ctx) =>
     try
     {
         var map = Maps.SectorMap.GetInstance();
-        var milieux = map.GetMilieux().OrderBy(m => m).ToArray();
+        var milieux = map.GetMilieux().OrderBy(m => m)
+            .Select(m => new { Code = m, IsDefault = m == Maps.SectorMap.DEFAULT_MILIEU }).ToArray();
         return Results.Json(new { Milieux = milieux });
     }
     catch (Exception ex) { return Results.Problem(ex.Message, statusCode: 500); }
