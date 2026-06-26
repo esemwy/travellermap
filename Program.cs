@@ -933,7 +933,7 @@ app.MapGet("/t5ss/sophonts", () =>
         var s = Maps.SecondSurvey.SophontForCode(code);
         return new { Code = code, Name = s?.Name, Location = s?.Location };
     }).ToArray();
-    return Results.Json(new { Sophonts = codes });
+    return Results.Json(codes);
 });
 
 // ───────────────────────────────────────────────────────────────────────────
