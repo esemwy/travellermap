@@ -683,6 +683,7 @@ app.MapGet("/api/credits", (HttpContext ctx) =>
 {
     try
     {
+        var rm  = Maps.ResourceManager.GetInstance();
         var map = Maps.SectorMap.ForMilieu(Qs(ctx, "milieu"));
         Maps.Location loc;
         try { loc = GetLocation(ctx, map); }
@@ -690,16 +691,76 @@ app.MapGet("/api/credits", (HttpContext ctx) =>
         if (loc.Hex.IsEmpty) loc.Hex = Maps.Astrometrics.SectorCenter;
         var sector = map.FromLocation(loc.Sector.X, loc.Sector.Y);
         if (sector == null) return Results.NotFound("Sector not found.");
+
+        string? sectorAuthor    = sector.Author;
+        string? sectorSource    = sector.Source;
+        string? sectorPublisher = sector.Publisher;
+        string? sectorCopyright = sector.Copyright;
+        string? sectorRef       = sector.Ref;
+        if (sector.DataFile != null)
+        {
+            sectorAuthor    = sector.DataFile.Author    ?? sectorAuthor;
+            sectorSource    = sector.DataFile.Source    ?? sectorSource;
+            sectorPublisher = sector.DataFile.Publisher ?? sectorPublisher;
+            sectorCopyright = sector.DataFile.Copyright ?? sectorCopyright;
+            sectorRef       = sector.DataFile.Ref       ?? sectorRef;
+        }
+
+        int ssx = (loc.Hex.X - 1) / Maps.Astrometrics.SubsectorWidth;
+        int ssy = (loc.Hex.Y - 1) / Maps.Astrometrics.SubsectorHeight;
+        var ss  = sector.Subsector(ssx + ssy * 4);
+
+        string? worldName = null, worldHex = null, worldUwp = null,
+                worldRemarks = null, worldIx = null, worldEx = null,
+                worldCx = null, worldPbg = null, worldAllegiance = null;
+        var worlds = sector.GetWorlds(rm);
+        if (worlds != null)
+        {
+            var world = worlds[loc.Hex];
+            if (world != null)
+            {
+                worldName      = world.Name;
+                worldHex       = world.Hex;
+                worldUwp       = world.UWP;
+                worldRemarks   = world.Remarks;
+                worldIx        = world.Importance;
+                worldEx        = world.Economic;
+                worldCx        = world.Cultural;
+                worldPbg       = world.PBG;
+                worldAllegiance = sector.GetAllegianceFromCode(world.Allegiance)?.T5Code ?? "";
+            }
+        }
+
+        var product = sector.Products.Count > 0 ? sector.Products[0] : null;
+
         return Results.Json(new
         {
-            SectorX = sector.X, SectorY = sector.Y,
-            SectorName = sector.Names.FirstOrDefault()?.Text,
-            Credits = sector.Credits?.Trim(),
-            SectorAuthor = sector.DataFile?.Author ?? sector.Author,
-            SectorPublisher = sector.DataFile?.Publisher ?? sector.Publisher,
-            SectorRef = sector.DataFile?.Ref ?? sector.Ref,
-            SectorTags = sector.TagString,
-            SectorMilieu = sector.CanonicalMilieu,
+            SectorX         = sector.X,
+            SectorY         = sector.Y,
+            SectorName      = sector.Names.FirstOrDefault()?.Text,
+            Credits         = sector.Credits?.Trim(),
+            SectorTags      = sector.TagString,
+            SectorMilieu    = sector.CanonicalMilieu,
+            SectorAuthor    = sectorAuthor,
+            SectorSource    = sectorSource,
+            SectorPublisher = sectorPublisher,
+            SectorCopyright = sectorCopyright,
+            SectorRef       = sectorRef,
+            SubsectorName   = ss?.Name,
+            SubsectorIndex  = ss?.Index,
+            WorldName       = worldName,
+            WorldHex        = worldHex,
+            WorldUwp        = worldUwp,
+            WorldRemarks    = worldRemarks,
+            WorldIx         = worldIx,
+            WorldEx         = worldEx,
+            WorldCx         = worldCx,
+            WorldPbg        = worldPbg,
+            WorldAllegiance = worldAllegiance,
+            ProductPublisher = product?.Publisher,
+            ProductTitle     = product?.Title,
+            ProductAuthor    = product?.Author,
+            ProductRef       = product?.Ref,
         });
     }
     catch (Exception ex) { return Results.Problem(ex.Message, statusCode: 500); }
