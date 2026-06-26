@@ -1,0 +1,34 @@
+services:
+  db:
+    image: mariadb:11
+    restart: unless-stopped
+    environment:
+      MARIADB_ROOT_PASSWORD: rootpass
+      MARIADB_DATABASE: travellermap
+      MARIADB_USER: travellermap
+      MARIADB_PASSWORD: travellermap
+    volumes:
+      - db_data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "healthcheck.sh", "--connect", "--innodb_initialized"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+
+  app:
+    image: travellermap
+    build: .
+    restart: unless-stopped
+    ports:
+      - "18080:8080"
+    environment:
+      ConnectionString: "Server=db;Database=travellermap;User=travellermap;Password=travellermap;"
+      DatabaseProvider: mariadb
+      # AdminKey: set via .env file or -e flag — never bake into image
+    depends_on:
+      db:
+        condition: service_healthy
+
+volumes:
+  db_data:

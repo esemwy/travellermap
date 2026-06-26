@@ -1,8 +1,8 @@
 ﻿#nullable enable
+using Dapper;
 using Maps.Search;
 using Maps.Utilities;
 using System;
-using System.Data.SqlClient;
 using System.IO;
 using System.Linq;
 using System.Text;
@@ -181,25 +181,15 @@ namespace Maps.Admin
             {
                 foreach (string table in new string[] { "sectors", "subsectors", "worlds", "labels" })
                 {
-                    string sql = $"SELECT COUNT(*) FROM {table}";
-                    using var command = new SqlCommand(sql, connection);
-                    using var reader = command.ExecuteReader();
-                    while (reader.Read())
-                    {
-                        Write(context.Response, $"{table}: {reader.GetInt32(0)}");
-                    }
+                    int count = connection.QueryFirst<int>($"SELECT COUNT(*) FROM {table}");
+                    Write(context.Response, $"{table}: {count}");
                 }
 
+                Write(context.Response, "&nbsp;");
+                Write(context.Response, "Worlds by Milieu:");
+                foreach (var row in connection.Query("SELECT milieu, COUNT(*) AS cnt FROM worlds GROUP BY milieu ORDER BY milieu"))
                 {
-                    Write(context.Response, "&nbsp;");
-                    Write(context.Response, "Worlds by Milieu:");
-                    string sql = $"SELECT milieu, COUNT(*) FROM worlds GROUP BY milieu ORDER BY milieu";
-                    using var command = new SqlCommand(sql, connection);
-                    using var reader = command.ExecuteReader();
-                    while (reader.Read())
-                    {
-                        Write(context.Response, $"{reader.GetString(0)} &mdash; {reader.GetInt32(1)}");
-                    }
+                    Write(context.Response, $"{row.milieu} &mdash; {row.cnt}");
                 }
             }
 

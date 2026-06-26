@@ -1,66 +1,256 @@
-The Traveller Map - Setup Guide
+The Traveller Map — Setup Guide
 ================================
 
-This is the setup guide to source code behind https://travellermap.com - an online resource for fans
-of the Traveller role playing game.
+This guide covers running the Traveller Map server on Linux using Docker
+(recommended) or directly with the .NET 8 SDK.
 
-This guide assumes basic familiarity with using Visual Studio projects and the Git source control system.
+---
 
-Prerequisites
--------------
-* Windows 10 or later
-* [Visual Studio Community 2022](https://www.visualstudio.com/downloads/) or the equivalent
-* [Git for Windows](https://git-scm.com/download/win) - or the equivalent
+## Docker (recommended)
 
-Setup and Build
----------------
-1. Clone the source for PDFsharp 1.5:
-    * example: `git clone https://github.com/empira/PDFsharp-1.5`
-2. Using Visual Studio, open `PDFsharp\code\BuildAll-PdfSharp.sln`, select the Release target, and build.
-3. Clone this repository:
-    * example: `git clone https://github.com/inexorabletash/travellermap.git`
-4. In your clone, copy the included `web.config.sample` file to `web.config`
-5. Using Visual Studio, open `Maps.sln`
-6. In the Solution Explorer pane, in both the Maps project and the UnitTests project, delete and re-add the references to PdfSharp to point to the PDFSharp DLL you just built (`PDFsharp-1.5\src\PdfSharp-gdi\bin\Release\PdfSharp-gdi.dll`)
-7. Optionally, modify the `web.config` file in the solution:
-    * Add an _admin key_ - this can be used to trigger flushing of the memory cache and rebuilding the search index.
-    * Find the `<sessionState>` element and the `stateConnectionString` attribute; change `50103` to your local IISExpress port number. Find this by opening the Maps project's properties and looking for the Web tab, "Servers" subsection, Project URL box (mine says `http://localhost:50103/` for example).
-8. Select the Debug or Release target and build the Maps target.
+### Prerequisites
 
-Trying it out
--------------
-* You can run it however you like; I use **Ctrl+F5** to start without debugging.
-* IIS will start and your default browser will connect to the site.
-* The map will display!
+- Docker 20.10+ with Compose v2 (`docker compose`)
+- A MariaDB 10.6+ or MariaDB 11 instance, **or** use the bundled dev stack below
 
-To Add a Database
------------------
+> **Database is optional for map rendering.** The app starts and serves map
+> tiles without a database configured. Only the search endpoint (`/api/search`)
+> and reindex (`/admin/reindex`) return HTTP 503 when no `ConnectionString` is
+> set. You can add a database at any time and run `/admin/reindex` to enable
+> search.
 
-Some features such as search require a database.
+### Quick start with the bundled dev stack
 
-1. Ensure you have some version of SQL Server installed (Express, Developer, etc). [SQL Server Downloads](https://www.microsoft.com/en-us/sql-server/sql-server-downloads)
-1. Track down the **connection string** for the database. When installing SQL Server Express Edition, this is given at the end of the install, and looks like: `Server=localhost\SQLEXPRESS;Database=master;Trusted_Connection=True;`
-1. Open the Solution > Maps > `Web.config` file and find the `<connectionStrings>` element
-1. Paste your copied connection string information from the properties panel into the `connectionString` attribute of both the `SqlDev` and `SqlProd` names
-1. Save your `Web.config`
+The repository includes a `docker-compose.yml` that starts both the app and a
+MariaDB 11 database in a single command:
 
-Now that your application can find your empty database, the reindex action on the admin page will fill an empty database:
+```sh
+docker compose up -d
+```
 
-1. Start the site; I use **Ctrl+F5** to start without debugging.
-1. Your browser will open to the default page, `http://localhost:<YOUR_PORT>/index.htm`
-1. Edit the URL to load: `http://localhost:<YOUR_PORT>/admin/reindex`
+The app is available at **http://localhost:18080**.
 
-You will see output from the re-indexing operation; when complete the page will show a summary followed by a little Omega symbol (&Omega;) at the bottom of the page.
+### Quick start — no database
 
-To verify that the database is populated, you can run a query:
+```sh
+docker run -d -p 8080:8080 travellermap
+```
 
-* `http://localhost:<YOUR_PORT>/api/search?q=regina`
+Map tiles render immediately. Search is disabled until a database is connected.
 
-> NOTE: When the Debug build target is running, only the worlds in "selected" sectors will be indexed. A Release build will index all worlds.
+---
 
-Linting the client-side javascript:
------------------
+## After first deploy (all scenarios)
 
-1. Choose Node and ESLint from the Visual Studio Installer option, or Download and install Node https://docs.npmjs.com/cli/v11/configuring-npm/install
-2. Run "npm install" in the project root to download the development packages used for linting.
-3. Automatically ESLint from Visual Studio or your chosen IDE's ESLint extension, or manually run "npx eslint fileName.js".
+Once the container is running, populate the search index:
+
+```sh
+curl http://<host>:<port>/admin/reindex
+```
+
+This is required after every fresh database — it may take a minute. Verify
+with:
+
+```sh
+curl "http://<host>:<port>/api/search?q=Regina"
+```
+
+If `AdminKey` is set, append `?key=<adminkey>` to admin requests.
+
+---
+
+## Building the image
+
+```sh
+docker build -t travellermap .
+```
+
+Or let Compose build it:
+
+```sh
+docker compose build
+```
+
+---
+
+## Deploying behind Nginx Proxy Manager
+
+NPM and the travellermap container need to be able to reach each other.
+Choose one of the two approaches below.
+
+### Option A — shared Docker network (cleaner, no host-port exposure)
+
+Create a network that both stacks share:
+
+```sh
+docker network create npm_proxy
+```
+
+Add it to your NPM `docker-compose.yml`:
+
+```yaml
+networks:
+  npm_proxy:
+    external: true
+```
+
+Add it to a `docker-compose.override.yml` in this repo (do not edit the
+tracked `docker-compose.yml`):
+
+```yaml
+services:
+  app:
+    ports: []          # remove host-port binding
+    networks:
+      - default
+      - npm_proxy
+
+networks:
+  npm_proxy:
+    external: true
+```
+
+In NPM, create a Proxy Host pointing to **`travellermap-app-1`** (the
+container name) on port **8080**. Enable "Websockets Support" if you
+use the interactive map in a browser. Leave "SSL" off for the upstream —
+NPM handles TLS termination.
+
+### Option B — host port (simpler)
+
+Leave the default `docker-compose.yml` as-is (port 18080 exposed on the
+host). In NPM, create a Proxy Host pointing to **`<docker-host-IP>`** on
+port **18080**.
+
+### Note on proxy headers
+
+The app does not redirect HTTP→HTTPS and does not generate absolute URLs, so
+`X-Forwarded-Proto` / `ForwardedHeaders` middleware is not required. NPM can
+pass forwarded headers or not — it makes no difference to the app.
+
+---
+
+## Using an external MariaDB (production)
+
+If you have an existing MariaDB instance (including one managed by another
+Compose stack), skip the bundled `db` service entirely. Create a
+`docker-compose.override.yml`:
+
+```yaml
+services:
+  app:
+    environment:
+      ConnectionString: "Server=<host>;Database=travellermap;User=<user>;Password=<pass>;"
+      DatabaseProvider: mariadb
+      AdminKey: ""     # or set a secret key
+```
+
+Or use a `.env` file (see below) and reference it:
+
+```yaml
+services:
+  app:
+    env_file: .env
+```
+
+You will need to create the `travellermap` database and user on the external
+instance before starting the container. The app creates its own tables on the
+first `/admin/reindex` call — no manual schema migration is needed.
+
+---
+
+## Secrets via `.env`
+
+Create a `.env` file next to `docker-compose.yml` (never commit this):
+
+```
+ConnectionString=Server=db;Database=travellermap;User=travellermap;Password=changeme;
+DatabaseProvider=mariadb
+AdminKey=your-secret-key-here
+```
+
+Reference it in `docker-compose.override.yml`:
+
+```yaml
+services:
+  app:
+    env_file: .env
+```
+
+> **Never bake `AdminKey` or `ConnectionString` into the image.** Pass them at
+> runtime via env vars or `.env`.
+
+---
+
+## Configuration reference
+
+| Variable           | Default         | Description                                              |
+|--------------------|-----------------|----------------------------------------------------------|
+| `ConnectionString` | *(empty)*       | ADO.NET connection string for the search database        |
+| `DatabaseProvider` | `mariadb`       | `mariadb` or `sqlserver`                                 |
+| `AdminKey`         | *(empty)*       | Secret required for `/admin/*` endpoints; empty = open   |
+| `ASPNETCORE_URLS`  | `http://+:8080` | Kestrel listen address (set in the image)                |
+
+---
+
+## Admin endpoints
+
+| Endpoint               | Description                             |
+|------------------------|-----------------------------------------|
+| `GET /admin/reindex`   | Rebuild the search database             |
+| `GET /admin/flush`     | Flush the in-memory sector cache        |
+| `GET /admin/overview`  | Render a 1000×1000 overview PNG         |
+| `GET /admin/errors`    | Validate sector data (allegiance codes) |
+| `GET /admin/codes`     | List unknown world codes                |
+| `GET /admin/dump`      | Dump a sample of world data             |
+| `GET /admin/profile`   | Process memory / thread stats           |
+| `GET /admin/uptime`    | Application uptime                      |
+
+---
+
+## Local development (dotnet run)
+
+### Prerequisites
+
+- .NET 8 SDK
+- (Optional) MariaDB or SQL Server for search features
+
+### Build and run
+
+```sh
+dotnet build
+ASPNETCORE_URLS=http://+:18083 dotnet run
+```
+
+The map is available at **http://localhost:18083**.
+
+### Running tests
+
+```sh
+dotnet test unittests/UnitTests/UnitTests.csproj
+```
+
+### Enabling search locally
+
+Set `ConnectionString` and `DatabaseProvider` via environment variables:
+
+```sh
+ConnectionString="Server=localhost;Database=travellermap;User=travellermap;Password=travellermap;" \
+DatabaseProvider=mariadb \
+ASPNETCORE_URLS=http://+:18083 \
+dotnet run
+```
+
+Then trigger reindex:
+
+```sh
+curl http://localhost:18083/admin/reindex
+```
+
+---
+
+## JavaScript linting
+
+```sh
+npm install
+npx eslint index.js map.js world_util.js
+```

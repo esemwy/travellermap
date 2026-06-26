@@ -2,7 +2,6 @@
 using Maps.Utilities;
 using System;
 using System.Collections.Generic;
-using System.Drawing;
 using System.IO;
 using System.Text;
 
@@ -339,11 +338,11 @@ namespace Maps
 
             public string? GetString(string property) => GetValue(property, out string value) ? value : null;
 
-            public Color? GetColor(string property)
+            public ColorRef? GetColor(string property)
             {
                 if (!GetValue(property, out string value))
                     return null;
-                return ColorUtil.ParseColor(value);
+                return new ColorRef(value);
             }
 
             public double? GetNumber(string property)

@@ -1,6 +1,6 @@
-﻿#nullable enable
+#nullable enable
 using System;
-using System.Drawing;
+using SkiaSharp;
 
 namespace Maps.Utilities
 {
@@ -8,9 +8,9 @@ namespace Maps.Utilities
     {
         public static void RGBtoXYZ(int r, int g, int b, out double x, out double y, out double z)
         {
-            double rl = (double)r / 255.0;
-            double gl = (double)g / 255.0;
-            double bl = (double)b / 255.0;
+            double rl = r / 255.0;
+            double gl = g / 255.0;
+            double bl = b / 255.0;
 
             double sr = (rl > 0.04045) ? Math.Pow((rl + 0.055) / (1 + 0.055), 2.2) : (rl / 12.92);
             double sg = (gl > 0.04045) ? Math.Pow((gl + 0.055) / (1 + 0.055), 2.2) : (gl / 12.92);
@@ -21,7 +21,8 @@ namespace Maps.Utilities
             z = sr * 0.0193 + sg * 0.1192 + sb * 0.9505;
         }
 
-        private static double Fxyz(double t) => ((t > 0.008856) ? Math.Pow(t, (1.0 / 3.0)) : (7.787 * t + 16.0 / 116.0));
+        private static double Fxyz(double t) =>
+            t > 0.008856 ? Math.Pow(t, 1.0 / 3.0) : (7.787 * t + 16.0 / 116.0);
 
         public static void XYZtoLab(double x, double y, double z, out double l, out double a, out double b)
         {
@@ -37,30 +38,29 @@ namespace Maps.Utilities
             return Math.Sqrt(c1 * c1 + c2 * c2 + c3 * c3);
         }
 
-        // TODO: Replace this with a "sufficient contrast?" test.
-        public static bool NoticeableDifference(Color a, Color b)
+        // Parses an HTML/CSS color string to SKColor for rendering code.
+        public static SKColor ParseColor(string value)
         {
-            const double JND = 13;// 2.3;
+            if (SKColor.TryParse(value, out SKColor color))
+                return color;
+            throw new Exception($"'{value}' is not a valid color name.");
+        }
 
-            RGBtoXYZ(a.R, a.G, a.B, out double ax, out double ay, out double az);
-            RGBtoXYZ(b.R, b.G, b.B, out double bx, out double by, out double bz);
+        // TODO: Replace this with a "sufficient contrast?" test.
+        public static bool NoticeableDifference(ColorRef a, ColorRef b)
+        {
+            const double JND = 13;
+
+            SKColor.TryParse(a.Html, out SKColor ca);
+            SKColor.TryParse(b.Html, out SKColor cb);
+
+            RGBtoXYZ(ca.Red, ca.Green, ca.Blue, out double ax, out double ay, out double az);
+            RGBtoXYZ(cb.Red, cb.Green, cb.Blue, out double bx, out double by, out double bz);
 
             XYZtoLab(ax, ay, az, out double al, out double aa, out double ab);
             XYZtoLab(bx, by, bz, out double bl, out double ba, out double bb);
 
             return DeltaE76(al, aa, ab, bl, ba, bb) > JND;
-        }
-
-        public static Color ParseColor(string value)
-        {
-            try
-            {
-                return ColorTranslator.FromHtml(value);
-            }
-            catch (Exception)
-            {
-                throw new Exception($"'{value}' is not a valid color name.");
-            }
         }
     }
 }

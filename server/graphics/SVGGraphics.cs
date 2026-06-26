@@ -505,11 +505,20 @@ namespace Maps.Graphics
         #endregion
 
         #region Text
-        private System.Drawing.Graphics? scratch;
         public SizeF MeasureString(string text, AbstractFont font)
         {
-            scratch ??= System.Drawing.Graphics.FromImage(new Bitmap(1, 1));
-            return scratch.MeasureString(text, font.Font);
+            // Use SkiaSharp for cross-platform text measurement.
+            var skStyle = (font.Bold && font.Italic) ? SkiaSharp.SKFontStyle.BoldItalic
+                        : font.Bold                  ? SkiaSharp.SKFontStyle.Bold
+                        : font.Italic                ? SkiaSharp.SKFontStyle.Italic
+                                                     : SkiaSharp.SKFontStyle.Normal;
+            var typeface = SkiaSharp.SKTypeface.FromFamilyName(
+                font.Families.Split(',')[0].Trim(), skStyle) ?? SkiaSharp.SKTypeface.Default;
+            using var skFont = new SkiaSharp.SKFont(typeface, font.Size);
+            float width = skFont.MeasureText(text);
+            skFont.GetFontMetrics(out var metrics);
+            float height = metrics.Descent - metrics.Ascent;
+            return new SizeF(width, height);
         }
 
         public void DrawString(string s, AbstractFont font, AbstractBrush brush, float x, float y, StringAlignment alignment)
@@ -750,8 +759,7 @@ namespace Maps.Graphics
                 return;
             if (disposing)
             {
-                scratch?.Dispose();
-                scratch = null;
+                // scratch GDI Graphics removed; SkiaSharp text measurement is stateless.
             }
             disposed = true;
         }

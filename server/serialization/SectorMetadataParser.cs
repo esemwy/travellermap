@@ -37,7 +37,9 @@ namespace Maps.Serialization
             long pos = stream.Position;
             try
             {
-                using (var reader = new NoCloseStreamReader(stream, Encoding.GetEncoding(1252), detectEncodingFromByteOrderMarks: true, bufferSize: BUFFER_SIZE))
+                // Use UTF-8 (ASCII-compatible) for sniffing: we only check for "<?xml" which is ASCII.
+                // Encoding.GetEncoding(1252) is unavailable on .NET 8 Linux without CodePagesEncodingProvider.
+                using (var reader = new NoCloseStreamReader(stream, Encoding.UTF8, detectEncodingFromByteOrderMarks: true, bufferSize: BUFFER_SIZE))
                 {
                     string line = reader.ReadLine();
                     if (line != null && SNIFF_XML_REGEX.IsMatch(line))

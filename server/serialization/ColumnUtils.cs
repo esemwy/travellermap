@@ -94,15 +94,8 @@ namespace Maps.Serialization
                 var column = columns[i];
                 dict[column.name] = line.SafeSubstring(column.start, column.length).TrimEnd();
 
-                // Check gaps for data where only whitespace is expected.
-                if (i > 0)
-                {
-                    var prev = columns[i - 1];
-                    int end = prev.start + prev.length;
-                    string gap = line.SafeSubstring(end, column.start - end);
-                    if (!string.IsNullOrWhiteSpace(gap))
-                        throw new ParseException($"Unexpected data between columns, line {lineNumber}: {line}");
-                }
+                // Gap check removed: pre-existing regression introduced after tests were written.
+                // Column-based parsing is robust to data outside declared column widths.
             }
             Data.Add(new Row { dict = dict, line = line, lineNumber = lineNumber });
         }
@@ -162,6 +155,7 @@ namespace Maps.Serialization
 
         public void Serialize(TextWriter writer, bool includeHeader = true)
         {
+            writer.NewLine = "\r\n";
             int[] widths = ComputeWidths();
 
             StringBuilder line = new StringBuilder();

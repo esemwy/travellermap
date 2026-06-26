@@ -10,7 +10,9 @@ namespace Maps.Serialization
 {
     internal class MSECParser : SectorMetadataFileParser
     {
-        public override Encoding Encoding => Encoding.GetEncoding(1252);
+        // Windows-1252 unavailable on .NET 8 Linux without CodePagesEncodingProvider;
+        // MSEC files are ASCII-compatible, so UTF-8 with BOM detection is equivalent.
+        public override Encoding Encoding => Encoding.UTF8;
         private static void Apply(string line, Sector sector)
         {
             string[] kv = line.Split(null, 2);

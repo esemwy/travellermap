@@ -404,7 +404,7 @@ Spin	L	3022	Rorise	C994100-A		Lo		502	ImDd	M1 V	{ 0 }	(500-4)	[1115]	B	8	-20
 Spin	L	3024	Jokotre	B6548D9-7		Pa Ph Pz	A	810	ImDd	K6 V	{ 0 }	(A78+1)	[9868]	Bce	9	560
 Spin	L	3025	Fornice	A554A87-C		Hi		202	ImDd	M0 V	{ 3 }	(E9E+3)	[AD5C]	BE	13	5292
 Spin	L	3026	Grille	E410335-7		Lo		701	ImDd	M2 V M2 V	{ -3 }	(520-5)	[1135]	B	12	-50
-Spin	L	3029	Palique	A511965-E		Hi Ic In Na Pz O:3025	A	320	ImDd	M0 V M1 V	{ 4 }	(D8G+2)	[7D3C]	BEf	5	3328
+Spin	L	3029	Pallique	A511965-E		Hi Ic In Na Pz O:3025	A	320	ImDd	M0 V M1 V	{ 4 }	(D8G+2)	[7D3C]	BEf	5	3328
 Spin	L	3030	Nexine	C97A443-8	S	Ni Wa (Nexxies)		801	ImDd	G9 V M2 V	{ -2 }	(731-5)	[1225]	B	12	-105
 Spin	P	3032	Katarulu	B552665-B	NW	Ni Po Mr		201	ImDd	M0 V M9 V	{ 2 }	(956+1)	[4839]	B	9	270
 Spin	P	3035	Prilissa	B985588-6		Ag Ni Pr		510	ImDd	K4 V	{ 0 }	(744+1)	[5556]	BcC	9	112

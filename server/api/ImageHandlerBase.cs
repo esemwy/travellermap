@@ -5,6 +5,7 @@ using Maps.Serialization;
 using Maps.Utilities;
 using PdfSharp.Drawing;
 using PdfSharp.Pdf;
+using SkiaSharp;
 using System;
 using System.Collections.Generic;
 using System.Drawing;
@@ -179,29 +180,24 @@ namespace Maps.API
                 }
                 else
                 {
-                    #region Bitmap Generation
+                    #region Bitmap Generation (SkiaSharp)
                     int width = (int)Math.Floor(tileSize.Width * devicePixelRatio);
                     int height = (int)Math.Floor(tileSize.Height * devicePixelRatio);
-                    using var bitmap = TryConstructBitmap(width, height, PixelFormat.Format32bppArgb);
-                    if (bitmap == null)
-                    {
+                    if (width < 1 || height < 1)
                         throw new HttpError(500, "Internal Server Error",
-                            $"Failed to allocate bitmap ({width}x{height}). Insufficient memory?");
-                    }
+                            $"Invalid bitmap size ({width}x{height}).");
 
-                    if (transparent)
-                        bitmap.MakeTransparent();
-
-                    using (var g = System.Drawing.Graphics.FromImage(bitmap))
+                    using var skBitmap = new SKBitmap(width, height, SKColorType.Bgra8888, SKAlphaType.Premul);
+                    using (var canvas = new SKCanvas(skBitmap))
                     {
-                        g.TextRenderingHint = System.Drawing.Text.TextRenderingHint.ClearTypeGridFit;
-
-                        using var graphics = new BitmapGraphics(g);
+                        canvas.Clear(transparent ? SKColors.Transparent : SKColors.White);
+                        using var graphics = new BitmapGraphics(canvas);
                         graphics.ScaleTransform((float)devicePixelRatio);
                         RenderToGraphics(ctx, transform, graphics);
                     }
 
-                    BitmapResponse(context.Response, disposition, outputStream, ctx.Styles, bitmap, transparent ? ContentTypes.Image.Png : null, title);
+                    SKBitmapResponse(context.Response, disposition, outputStream, ctx.Styles, skBitmap,
+                        transparent ? ContentTypes.Image.Png : null, title);
                     #endregion
                 }
 
@@ -282,79 +278,32 @@ namespace Maps.API
                 }
             }
 
-            private static void BitmapResponse(HttpResponse response, string disposition, Stream outputStream, Stylesheet styles, Bitmap bitmap, string? mimeType, string? title)
+            // SkiaSharp-based bitmap response: replaces GDI+ BitmapResponse.
+            private static void SKBitmapResponse(HttpResponse response, string disposition, Stream outputStream,
+                Stylesheet styles, SKBitmap bitmap, string? mimeType, string? title)
             {
-                try
+                mimeType ??= styles.preferredMimeType;
+                response.ContentType = mimeType;
+
+                string? extension = mimeType switch
                 {
-                    // JPEG or PNG if not specified, based on style
-                    mimeType ??= styles.preferredMimeType;
+                    ContentTypes.Image.Jpeg => "jpg",
+                    ContentTypes.Image.Png  => "png",
+                    _                       => "png"
+                };
 
-                    response.ContentType = mimeType;
-                    string? extension = mimeType switch
-                    {
-                        ContentTypes.Image.Jpeg => "jpg",
-                        ContentTypes.Image.Gif => "gif",
-                        ContentTypes.Image.Png => "png",
-                        _ => null
-                    };
+                SKEncodedImageFormat skFormat = mimeType == ContentTypes.Image.Jpeg
+                    ? SKEncodedImageFormat.Jpeg
+                    : SKEncodedImageFormat.Png;
+                int quality = mimeType == ContentTypes.Image.Jpeg ? 95 : 100;
 
+                using var encoded = bitmap.Encode(skFormat, quality)
+                    ?? throw new HttpError(500, "Internal Server Error", "Failed to encode bitmap.");
+                encoded.SaveTo(outputStream);
 
-                    // Searching for a matching encoder
-                    ImageCodecInfo encoder = ImageCodecInfo.GetImageEncoders()
-                        .FirstOrDefault(e => e.MimeType == response.ContentType);
-
-                    if (encoder != null)
-                    {
-                        EncoderParameters encoderParams;
-                        if (mimeType == ContentTypes.Image.Jpeg)
-                        {
-                            encoderParams = new EncoderParameters(1);
-                            encoderParams.Param[0] = new EncoderParameter(Encoder.Quality, (long)95);
-                        }
-                        else if (mimeType == ContentTypes.Image.Png)
-                        {
-                            encoderParams = new EncoderParameters(1);
-                            encoderParams.Param[0] = new EncoderParameter(Encoder.ColorDepth, 8);
-                        }
-                        else
-                        {
-                            encoderParams = new EncoderParameters(0);
-                        }
-
-                        if (mimeType == ContentTypes.Image.Png)
-                        {
-                            // PNG encoder is picky about streams - need to do an indirection
-                            // http://www.west-wind.com/WebLog/posts/8230.aspx
-                            using var ms = new MemoryStream();
-                            bitmap.Save(ms, encoder, encoderParams);
-                            ms.WriteTo(outputStream);
-                        }
-                        else
-                        {
-                            bitmap.Save(outputStream, encoder, encoderParams);
-                        }
-
-                        encoderParams.Dispose();
-                    }
-                    else
-                    {
-                        // Default to GIF if we can't find anything
-                        response.ContentType = ContentTypes.Image.Gif;
-                        bitmap.Save(outputStream, ImageFormat.Gif);
-                    }
-
-                    if (title != null && extension != null)
-                    {
-                        response.AddHeader("content-disposition", $"{disposition};filename=\"{Util.SanitizeFilename(title)}.{extension}\"");
-                    }
-
-                }
-                catch (System.Runtime.InteropServices.ExternalException)
-                {
-                    // Saving seems to throw "A generic error occurred in GDI+." on low memory.
-                    throw new HttpError(500, "Internal Server Error",
-                        $"Unknown GDI error encoding bitmap ({bitmap.Width}x{bitmap.Height}). Insufficient memory?");
-                }
+                if (title != null && extension != null)
+                    response.AddHeader("content-disposition",
+                        $"{disposition};filename=\"{Util.SanitizeFilename(title)}.{extension}\"");
             }
 
             protected static Sector? GetPostedSector(HttpRequest request, ErrorLogger errors)
