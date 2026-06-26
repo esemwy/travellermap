@@ -56,6 +56,21 @@ provider.Mappings[".t5tab"] = "text/plain";
 // Use GetCurrentDirectory() since ContentRootPath may not match during dotnet run.
 var webRootPath = System.IO.Path.GetFullPath(System.IO.Directory.GetCurrentDirectory());
 var contentRoot = new Microsoft.Extensions.FileProviders.PhysicalFileProvider(webRootPath);
+
+// Rewrite extensionless paths to .html if the file exists (e.g. /doc/about → /doc/about.html).
+app.Use(async (context, next) =>
+{
+    string path = context.Request.Path.Value ?? "";
+    if (!System.IO.Path.HasExtension(path) && !path.EndsWith("/") && path.Length > 1)
+    {
+        string candidate = System.IO.Path.Combine(webRootPath,
+            path.TrimStart('/').Replace('/', System.IO.Path.DirectorySeparatorChar) + ".html");
+        if (System.IO.File.Exists(candidate))
+            context.Request.Path = path + ".html";
+    }
+    await next(context);
+});
+
 app.UseDefaultFiles(new DefaultFilesOptions { FileProvider = contentRoot });
 app.UseStaticFiles(new StaticFileOptions
 {
