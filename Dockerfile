@@ -1,4 +1,4 @@
-FROM mcr.microsoft.com/dotnet/sdk:8.0 AS build
+FROM mcr.microsoft.com/dotnet/sdk:10.0 AS build
 WORKDIR /src
 
 COPY Maps.csproj .
@@ -7,15 +7,14 @@ RUN dotnet restore Maps.csproj
 COPY . .
 RUN dotnet publish Maps.csproj -c Release -o /app/publish --no-restore
 
-FROM mcr.microsoft.com/dotnet/aspnet:8.0 AS runtime
+FROM mcr.microsoft.com/dotnet/aspnet:10.0 AS runtime
 WORKDIR /app
 
 # SkiaSharp deps + Microsoft TrueType core fonts (Arial, etc.) via ttf-mscorefonts-installer
-RUN echo "deb http://deb.debian.org/debian bookworm contrib non-free" \
-        > /etc/apt/sources.list.d/contrib.list \
-    && echo "ttf-mscorefonts-installer msttcorefonts/accepted-mscorefonts-eula boolean true" \
+# Base image is Ubuntu 24.04; multiverse (which has the fonts installer) is already enabled
+RUN echo "ttf-mscorefonts-installer msttcorefonts/accepted-mscorefonts-eula boolean true" \
         | debconf-set-selections \
-    && apt-get update && apt-get install -y --no-install-recommends \
+    && apt-get update && apt-get upgrade -y && apt-get install -y --no-install-recommends \
         libfontconfig1 \
         libfreetype6 \
         fontconfig \
