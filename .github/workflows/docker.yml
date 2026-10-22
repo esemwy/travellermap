@@ -4,6 +4,9 @@ on:
   push:
     branches: [main]
   workflow_dispatch:
+  # Weekly rebuild to pick up base-image and OS fixes (Saturday 07:00 UTC)
+  schedule:
+    - cron: '0 7 * * 6'
 
 jobs:
   build:
@@ -30,3 +33,12 @@ jobs:
           tags: |
             ghcr.io/esemwy/travellermap:latest
             ghcr.io/esemwy/travellermap:${{ github.sha }}
+
+      # Fail the run (GitHub emails on failure) if the image has fixable
+      # HIGH/CRITICAL vulnerabilities
+      - name: Scan image with Trivy
+        run: >
+          docker run --rm -v "$HOME/.docker:/root/.docker:ro"
+          aquasec/trivy:0.75.0 image
+          --severity HIGH,CRITICAL --ignore-unfixed --exit-code 1 --no-progress
+          ghcr.io/esemwy/travellermap:${{ github.sha }}
