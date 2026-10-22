@@ -18,6 +18,8 @@
     <Compile Remove="AssemblyInfo.cs" />
     <!-- Unit tests live in their own project -->
     <Compile Remove="unittests/**" />
+    <Content Remove="unittests/**" />
+    <None Remove="unittests/**" />
     <!-- Global.asax: replaced by Program.cs in issue #3 -->
     <Compile Remove="Global.asax.cs" />
     <!-- AbstractGraphics.cs uses PdfSharp 1.5 GDI-only APIs (ToGdiMatrix, FromGdiPlusImage);

@@ -1,6 +1,6 @@
 .git
-obj/
-bin/
+**/obj/
+**/bin/
 .vs/
 *.user
 *.suo
@@ -9,3 +9,4 @@ node_modules/
 .claude/
 CLAUDE.md
 PRD.md
+unittests/
